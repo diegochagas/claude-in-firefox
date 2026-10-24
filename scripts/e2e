@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# scripts/e2e: build, install the native-host manifest for this checkout, then drive a headless
+# Firefox through the real extension + native host + MCP server. Screenshots land in e2e/screenshots.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+./scripts/setup --no-mcp >/dev/null
+npx vitest run --config e2e/vitest.config.ts

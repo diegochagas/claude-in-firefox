@@ -1,0 +1,5 @@
+dist
+node_modules
+web-ext-artifacts
+e2e/screenshots
+package-lock.json

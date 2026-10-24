@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Second page</title>
+  </head>
+  <body>
+    <main>
+      <h1>Second page</h1>
+      <p id="query"></p>
+      <a href="/index.html">Back home</a>
+    </main>
+    <script>
+      document.getElementById("query").textContent =
+        "query=" + new URLSearchParams(location.search).get("q");
+    </script>
+  </body>
+</html>

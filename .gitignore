@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+e2e/screenshots/
+e2e/.profile/
+web-ext-artifacts/
+*.xpi
+# Real values live here, never in the repo (see AGENTS.md)
+config.env

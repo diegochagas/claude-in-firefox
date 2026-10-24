@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claude in Firefox fixture</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 16px;
+      }
+      header {
+        background: #d97757;
+        color: white;
+        padding: 12px;
+      }
+      #tall {
+        height: 2400px;
+        background: linear-gradient(#eee, #999);
+      }
+      #counter {
+        font-size: 24px;
+      }
+      #box {
+        height: 120px;
+        overflow: auto;
+        border: 1px solid #999;
+      }
+      #box div {
+        height: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Fixture page</h1>
+      <nav><a href="/second.html">Second page</a> <a href="#about" aria-label="About us">?</a></nav>
+    </header>
+    <main>
+      <section>
+        <h2>Counter</h2>
+        <button id="increment">Increment</button>
+        <span id="counter" aria-live="polite">0</span>
+      </section>
+      <section>
+        <h2>Form</h2>
+        <form id="search" action="/second.html" method="get">
+          <label for="q">Query</label> <input id="q" name="q" placeholder="Search…" />
+          <label for="country">Country</label>
+          <select id="country" name="country">
+            <option value="br">Brazil</option>
+            <option value="pt">Portugal</option>
+            <option value="nz">New Zealand</option>
+          </select>
+          <label><input type="checkbox" id="agree" name="agree" /> I agree</label>
+          <button type="submit">Search</button>
+        </form>
+        <p>Typed: <output id="typed" for="q"></output></p>
+      </section>
+      <section>
+        <h2>Editor</h2>
+        <div id="editor" contenteditable="true" role="textbox" aria-label="Notes">Hello</div>
+      </section>
+      <section>
+        <h2>Scroll box</h2>
+        <div id="box"><div>inner tall content</div></div>
+      </section>
+      <section id="tall"><p>Tall section start</p></section>
+      <p id="bottom">Bottom of the page</p>
+    </main>
+    <script>
+      console.log("fixture loaded", { ready: true });
+      console.error("fixture error example");
+      window.fixtureState = { clicks: 0, data: null };
+      document.getElementById("increment").addEventListener("click", () => {
+        window.fixtureState.clicks++;
+        document.getElementById("counter").textContent = String(window.fixtureState.clicks);
+        console.info("clicked", window.fixtureState.clicks);
+      });
+      document.getElementById("q").addEventListener("input", (event) => {
+        document.getElementById("typed").textContent = event.target.value;
+      });
+      fetch("/api/data.json")
+        .then((response) => response.json())
+        .then((json) => {
+          window.fixtureState.data = json;
+        });
+    </script>
+  </body>
+</html>

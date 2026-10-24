@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# scripts/setup: idempotent bootstrap on a clean machine.
+#   1. npm ci + build
+#   2. register the native-messaging host manifest for Firefox (points at this checkout)
+#   3. register the MCP server in Claude Code (user scope) unless --no-mcp
+# Re-running only rewrites the two manifests; nothing else is touched.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+REPO_DIR="$(pwd)"
+HOST_NAME="claude_in_firefox"
+MANIFEST_DIR="${CLAUDE_IN_FIREFOX_MANIFEST_DIR:-$HOME/.mozilla/native-messaging-hosts}"
+EXTENSION_ID="claude-in-firefox@diegochagas.dev"
+
+log() { printf '%s\n' "$*"; }
+
+install_dependencies() {
+    if [[ -d node_modules ]]; then log "node_modules present, skipping npm ci"; else npm ci; fi
+    npm run build --silent
+}
+
+write_native_manifest() {
+    mkdir -p "$MANIFEST_DIR"
+    local manifest="$MANIFEST_DIR/$HOST_NAME.json"
+    cat > "$manifest" <<JSON
+{
+  "name": "$HOST_NAME",
+  "description": "Claude in Firefox native messaging host",
+  "path": "$REPO_DIR/dist/native-host",
+  "type": "stdio",
+  "allowed_extensions": ["$EXTENSION_ID"]
+}
+JSON
+    log "native host manifest: $manifest"
+}
+
+register_mcp_server() {
+    if ! command -v claude >/dev/null; then log "claude CLI not found; register manually: claude mcp add --scope user claude-in-firefox -- node $REPO_DIR/dist/mcp-server.js"; return; fi
+    if claude mcp get claude-in-firefox >/dev/null 2>&1; then claude mcp remove --scope user claude-in-firefox >/dev/null 2>&1 || true; fi
+    claude mcp add --scope user claude-in-firefox -- node "$REPO_DIR/dist/mcp-server.js"
+    log "MCP server registered in Claude Code (user scope) as claude-in-firefox"
+}
+
+print_next_steps() {
+    cat <<TEXT
+
+Next:
+  - Load the extension in Firefox: about:debugging#/runtime/this-firefox → Load Temporary Add-on → $REPO_DIR/dist/extension/manifest.json
+    (or: npm run firefox, which opens your default profile with it loaded)
+  - For a permanent install, sign it: npm run sign (needs WEB_EXT_API_KEY / WEB_EXT_API_SECRET from addons.mozilla.org)
+  - The toolbar badge shows "on" when the native host is connected; Claude Code then sees the claude-in-firefox tools.
+TEXT
+}
+
+main() {
+    install_dependencies
+    write_native_manifest
+    if [[ "${1:-}" != "--no-mcp" ]]; then register_mcp_server; fi
+    print_next_steps
+}
+
+main "$@"
