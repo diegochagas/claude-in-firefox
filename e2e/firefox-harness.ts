@@ -1,6 +1,7 @@
 // Launches a headless Firefox with the built extension through web-ext, serves the fixture
 // pages over HTTP, and waits for the native host's socket. Firefox inherits
-// CLAUDE_IN_FIREFOX_SOCKET from this process, so the run never touches a real session's socket.
+// CLAUDE_IN_FIREFOX_SOCKET from this process, so the run never touches a real session's socket,
+// and CLAUDE_IN_FIREFOX_CLAUDE_BIN, so the sidebar chat talks to tests/fakes/fake-claude.mjs.
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
@@ -8,11 +9,19 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const FIXTURE_DIR = resolve("e2e/fixtures");
+const FAKE_CLAUDE = resolve("tests/fakes/fake-claude.mjs");
+const EXTENSION_ID = "claude-in-firefox@diegochagas.dev";
+// Pinned so tests can open the extension's own pages (moz-extension://<uuid>/sidebar.html).
+const EXTENSION_UUID = "7d6e2b3a-5c1f-4e8a-9b2d-0f3c4a5b6c7d";
 const CONTENT_TYPES: Record<string, string> = { ".html": "text/html", ".json": "application/json" };
 
 export interface FirefoxHarness {
   baseUrl: string;
+  /** moz-extension://<uuid>, the origin of the extension's own pages (popup, sidebar). */
+  extensionBaseUrl: string;
   socketPath: string;
+  /** JSON lines the fake claude appends (one per start and per user turn). */
+  fakeClaudeLog: string;
   stop(): Promise<void>;
 }
 
@@ -35,7 +44,10 @@ function serveFixtures(): Promise<{ server: Server; baseUrl: string }> {
   });
 }
 
-function launchWebExt(socketPath: string, startUrl: string): ChildProcess {
+function launchWebExt(socketPath: string, fakeClaudeLog: string, startUrl: string): ChildProcess {
+  // web-ext copies string prefs into user.js unescaped, so the quotes must arrive escaped
+  // or Firefox drops the whole line (and the UUID with it).
+  const uuids = JSON.stringify({ [EXTENSION_ID]: EXTENSION_UUID }).replace(/"/g, '\\"');
   const args = [
     "web-ext",
     "run",
@@ -43,12 +55,18 @@ function launchWebExt(socketPath: string, startUrl: string): ChildProcess {
     "dist/extension",
     "--no-reload",
     "--args=--headless",
+    `--pref=extensions.webextensions.uuids=${uuids}`,
     "--start-url",
     startUrl,
   ];
   if (process.env.FIREFOX_BIN) args.push("--firefox", process.env.FIREFOX_BIN);
   const child = spawn("npx", args, {
-    env: { ...process.env, CLAUDE_IN_FIREFOX_SOCKET: socketPath },
+    env: {
+      ...process.env,
+      CLAUDE_IN_FIREFOX_SOCKET: socketPath,
+      CLAUDE_IN_FIREFOX_CLAUDE_BIN: FAKE_CLAUDE,
+      FAKE_CLAUDE_LOG: fakeClaudeLog,
+    },
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -91,12 +109,16 @@ function killProcessGroup(child: ChildProcess): Promise<void> {
 /** Start everything; the caller stops it in afterAll. */
 export async function startFirefoxHarness(): Promise<FirefoxHarness> {
   const { server, baseUrl } = await serveFixtures();
-  const socketPath = join(mkdtempSync(join(tmpdir(), "claude-in-firefox-e2e-")), "bridge.sock");
-  const webExt = launchWebExt(socketPath, `${baseUrl}/index.html`);
+  const runDir = mkdtempSync(join(tmpdir(), "claude-in-firefox-e2e-"));
+  const socketPath = join(runDir, "bridge.sock");
+  const fakeClaudeLog = join(runDir, "fake-claude.log");
+  const webExt = launchWebExt(socketPath, fakeClaudeLog, `${baseUrl}/index.html`);
   await waitForSocket(socketPath, 90_000);
   return {
     baseUrl,
+    extensionBaseUrl: `moz-extension://${EXTENSION_UUID}`,
     socketPath,
+    fakeClaudeLog,
     stop: async () => {
       await killProcessGroup(webExt);
       server.close();

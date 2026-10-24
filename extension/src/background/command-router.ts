@@ -1,6 +1,7 @@
 // Maps BridgeMethod names to background handlers. Every handler returns JSON-serialisable data.
 import type { BridgeMethod, ContentCommand } from "../shared/protocol";
 import { resolveTabId } from "./active-tab";
+import { readChatTranscript, sendChatTurn } from "./chat-api";
 import { readConsole } from "./console-store";
 import { sendToContent } from "./content-bridge";
 import { settleAfterInteraction } from "./navigation-wait";
@@ -47,6 +48,8 @@ const HANDLERS: Record<BridgeMethod, Handler> = {
   "page.evaluate": (params) => forwardToPage("evaluate", params),
   "diagnostics.console": (params) => readConsole(params),
   "diagnostics.network": (params) => readNetwork(params),
+  "chat.send": (params) => sendChatTurn(params.text, params.model, params.conversationId),
+  "chat.transcript": (params) => Promise.resolve(readChatTranscript(params.conversationId)),
 };
 
 /** Dispatch one bridge request; unknown methods fail with the list of valid ones. */

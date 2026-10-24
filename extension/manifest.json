@@ -45,5 +45,21 @@
     },
     "default_title": "Claude Browser Bridge: not connected",
     "default_popup": "popup.html"
+  },
+  "sidebar_action": {
+    "default_title": "Claude",
+    "default_panel": "sidebar.html",
+    "default_icon": {
+      "48": "icons/icon-48.png"
+    },
+    "open_at_install": false
+  },
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Open the Claude chat sidebar"
+    }
   }
 }

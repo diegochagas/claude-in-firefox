@@ -6,13 +6,22 @@ code or assets). Three programs, one TypeScript repo, bundled by esbuild into `d
 
 ## Layout
 
-- `extension/src/background/` — tabs, screenshots, console/network stores, native port, command router
+- `extension/src/background/` — tabs, screenshots, console/network stores, native port, command router,
+  sidebar chat (`chat-api.ts` serves the sidebar Port and the `chat.*` bridge methods, `chat-store.ts` persists
+  conversations, `chat-prompt.ts` adds the active tab to each turn)
 - `extension/src/content/` — runs inside pages: outline/refs, pointer, keyboard, scroll, forms, eval, console hook
-- `extension/src/popup/` — toolbar popup (status, driven tabs, Reconnect); `render.ts` is pure DOM, tested under jsdom
-- `extension/src/shared/` — wire types (`protocol.ts`) and key-name table used by all three programs
-- `native-host/src/` — stdio framing ⇄ Unix socket (JSON lines), multiplexes several MCP servers
+- `extension/src/popup/` — toolbar popup (status, driven tabs, Reconnect, Open chat); `render.ts` is pure DOM, tested under jsdom
+- `extension/src/sidebar/` — sidebar chat page (`sidebar.html`): `render.ts` pure DOM from a `SidebarSnapshot`,
+  `markdown.ts` safe Markdown → DOM, `main.ts` the Port to the background; uses the user's Claude Code login
+- `extension/src/shared/` — wire types (`protocol.ts` bridge, `chat-protocol.ts` sidebar chat, `chat-transcript.ts`
+  the reducer both background and sidebar apply) and key-name table used by all three programs
+- `native-host/src/` — stdio framing ⇄ Unix socket (JSON lines), multiplexes several MCP servers; runs one
+  `claude -p` per sidebar conversation (`claude-launch.ts` args/binary, `claude-process.ts` stdio runner,
+  `claude-stream.ts` stream-json → `ChatEvent`, `chat-sessions.ts` live processes)
 - `mcp-server/src/` — MCP tools (`tools/*.ts`), `BridgeClient`, `ToolRegistry` (the only file that touches the MCP SDK)
-- `tests/` (vitest unit, jsdom for content modules, `FakeBridge` for tools), `e2e/` (real headless Firefox via web-ext)
+- `tests/` (vitest unit, jsdom for content modules, `FakeBridge` for tools, `fakes/fake-claude.mjs` +
+  `FakeClaudeProcess` for the host's chat runner), `e2e/` (real headless Firefox via web-ext; the chat e2e
+  points the host at the fake `claude` through `CLAUDE_IN_FIREFOX_CLAUDE_BIN`)
 - `scripts/check` gate, `scripts/setup` bootstrap, `scripts/e2e` end-to-end run,
   `scripts/release <version>` (sign with AMO + GitHub Release with xpi and updates.json; `--dry-run` publishes nothing)
 
@@ -54,7 +63,9 @@ Formatter: prettier; `scripts/check` runs it, don't discuss style.
 - Logging: JSON lines on stderr in the native host and MCP server (stdout is the protocol channel); the extension logs JSON to its console.
 - Defensive code this repo needs (implement these; flag anything else instead of adding it silently):
   per-request timeout on the bridge (60s) and page evaluation (30s); reconnect with backoff on the native port;
-  content-script injection fallback for tabs opened before the extension; truncation of every page-derived text with an explicit note.
+  content-script injection fallback for tabs opened before the extension; truncation of every page-derived text with an explicit note;
+  sidebar chat: a `claude` turn that ignores an interrupt is killed after 5s (`CANCEL_GRACE_MS`, the session stays
+  resumable), the sidebar page reconnects its Port 1s after the background drops it.
 - README has an "Architecture" section (diagram of the main flow); update it when the shape changes.
 - `scripts/setup` bootstraps a clean machine idempotently; `scripts/check` is the single validation command.
 
@@ -71,4 +82,10 @@ Formatter: prettier; `scripts/check` runs it, don't discuss style.
   from `scripts/release` (AMO unlisted). The manifest's `update_url` points at
   `releases/latest/download/updates.json`, so every release must attach a fresh `updates.json`.
 - The add-on's manifest `name` is "Claude Browser Bridge": AMO rejects names containing "Firefox" or "Mozilla".
+- `sidebarAction.open()` only works inside a user gesture (the popup's click handler); content scripts never run
+  in `moz-extension:` pages, so the e2e pins the extension UUID (`extensions.webextensions.uuids`) to open
+  `sidebar.html` in a tab and reads the chat through the `chat.transcript` bridge method instead.
+- `claude -p --input-format stream-json` stays alive across turns; permission prompts arrive as
+  `control_request`/`can_use_tool` only with `--permission-prompt-tool stdio`, and `--allowedTools mcp__<server>`
+  pre-approves a whole MCP server (probed 2026-10-24 with Claude Code 2.1).
 - AMO credentials live only in `config.env` (gitignored); never in the workflow files or docs.

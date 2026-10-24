@@ -32,7 +32,10 @@ export type BridgeMethod =
   | "page.scrollTo"
   | "page.evaluate"
   | "diagnostics.console"
-  | "diagnostics.network";
+  | "diagnostics.network"
+  // Sidebar chat (see chat-protocol.ts): post a turn into the sidebar, read its transcript.
+  | "chat.send"
+  | "chat.transcript";
 
 export interface TabSummary {
   tabId: number;
