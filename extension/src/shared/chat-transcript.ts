@@ -1,6 +1,11 @@
 // Pure transcript reducer: the background applies every ChatEvent to its copy of a conversation
 // and forwards the event; the sidebar applies the same reducer to its copy, so both agree.
-import type { ChatConversation, ChatEvent, ChatItem } from "./chat-protocol";
+import type {
+  ChatConversation,
+  ChatConversationSummary,
+  ChatEvent,
+  ChatItem,
+} from "./chat-protocol";
 
 const TITLE_MAX_CHARS = 60;
 
@@ -133,6 +138,12 @@ function applyRemainingEvent(conversation: ChatConversation, event: ChatEvent): 
     answerPermission(conversation, event.requestId, event.allow);
   else if (event.type === "error")
     conversation.items.push({ role: "status", text: event.message, isError: true });
+}
+
+/** The picker row for a conversation. Example: summarizeConversation(conversation).title */
+export function summarizeConversation(conversation: ChatConversation): ChatConversationSummary {
+  const { conversationId, title, updatedAt, busy } = conversation;
+  return { conversationId, title, updatedAt, busy };
 }
 
 /** Mark a conversation idle after a restart: its process is gone, nothing is streaming. */

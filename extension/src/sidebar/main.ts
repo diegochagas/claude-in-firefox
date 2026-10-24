@@ -6,7 +6,7 @@ import {
   type SidebarSnapshot,
   type SidebarUpdate,
 } from "../shared/chat-protocol";
-import { applyChatEvent } from "../shared/chat-transcript";
+import { applyChatEvent, summarizeConversation } from "../shared/chat-transcript";
 import { renderSidebar } from "./render";
 
 const RECONNECT_DELAY_MS = 1_000;
@@ -29,6 +29,16 @@ function redraw(): void {
   if (stickToBottom) messages.scrollTop = messages.scrollHeight;
 }
 
+function applyDelta(shown: SidebarSnapshot, event: SidebarUpdate & { kind: "chatDelta" }): void {
+  applyChatEvent(shown.conversation, event.event);
+  // The picker row (title after the first message, busy dot) follows the conversation.
+  shown.conversations = shown.conversations.map((summary) =>
+    summary.conversationId === event.conversationId
+      ? summarizeConversation(shown.conversation)
+      : summary,
+  );
+}
+
 function receive(update: SidebarUpdate): void {
   if (update.kind === "chatSnapshot") snapshot = update;
   else if (update.kind === "chatHostStatus" && snapshot)
@@ -37,7 +47,7 @@ function receive(update: SidebarUpdate): void {
     update.kind === "chatDelta" &&
     snapshot?.conversation.conversationId === update.conversationId
   )
-    applyChatEvent(snapshot.conversation, update.event);
+    applyDelta(snapshot, update);
   redraw();
 }
 

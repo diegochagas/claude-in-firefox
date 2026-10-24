@@ -2,7 +2,11 @@
 // mirrored to storage.local without live processes, so a browser restart keeps the history
 // and the session ids needed to resume.
 import type { ChatConversation, ChatConversationSummary } from "../shared/chat-protocol";
-import { createConversation, settleConversation } from "../shared/chat-transcript";
+import {
+  createConversation,
+  settleConversation,
+  summarizeConversation,
+} from "../shared/chat-transcript";
 
 const STORAGE_KEY = "chatConversations";
 const CURRENT_KEY = "chatCurrentId";
@@ -49,12 +53,7 @@ export function openConversation(conversationId: string): ChatConversation {
 export function listConversationSummaries(): ChatConversationSummary[] {
   return [...conversations.values()]
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map(({ conversationId, title, updatedAt, busy }) => ({
-      conversationId,
-      title,
-      updatedAt,
-      busy,
-    }));
+    .map(summarizeConversation);
 }
 
 function trimmed(conversation: ChatConversation): ChatConversation {

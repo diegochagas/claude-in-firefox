@@ -3,6 +3,7 @@ import {
   applyChatEvent,
   createConversation,
   settleConversation,
+  summarizeConversation,
 } from "../extension/src/shared/chat-transcript";
 import { composeChatPrompt } from "../extension/src/background/chat-prompt";
 
@@ -91,6 +92,17 @@ describe("applyChatEvent", () => {
     });
     applyChatEvent(conversation, { type: "exit", code: 0 });
     expect(conversation.items).toHaveLength(5);
+  });
+  it("summarizes a conversation for the picker (title follows the first message)", () => {
+    const conversation = createConversation("c1");
+    expect(summarizeConversation(conversation).title).toBe("New chat");
+    applyChatEvent(conversation, { type: "user", text: "And this one?" });
+    expect(summarizeConversation(conversation)).toEqual({
+      conversationId: "c1",
+      title: "And this one?",
+      updatedAt: conversation.updatedAt,
+      busy: true,
+    });
   });
   it("records a model change", () => {
     const conversation = createConversation("c1");
