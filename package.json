@@ -1,6 +1,6 @@
 {
   "name": "claude-in-firefox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Firefox WebExtension + MCP server that gives Claude Code the same browser tools as Claude in Chrome",
   "license": "MIT",
   "private": true,
