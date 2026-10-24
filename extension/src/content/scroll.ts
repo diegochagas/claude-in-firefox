@@ -57,6 +57,7 @@ function wheelEvent(clientX: number, clientY: number, delta: { x: number; y: num
   });
 }
 
+/** scroll_to: centre the ref's element in the viewport. Example: scrollToRef("ref_4") */
 export function scrollToRef(ref: string): string {
   const element = elementByRef(ref);
   element.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });

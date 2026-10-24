@@ -43,6 +43,7 @@ export function formatConsoleEntry(entry: ConsoleEntry): string {
   return `[${new Date(entry.timestamp).toISOString().slice(11, 23)}] ${entry.level.toUpperCase()} ${entry.text}`;
 }
 
+/** read_console_messages: filtered, newest-last console lines of the tab. */
 export async function readConsole(query: ConsoleQuery): Promise<string> {
   const id = await resolveTabId(query.tabId);
   const entries = filterConsoleEntries(consoleLog.list(id), query);

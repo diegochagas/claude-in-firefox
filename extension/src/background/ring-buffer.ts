@@ -15,6 +15,14 @@ export class PerTabRingBuffer<T> {
     return [...(this.entriesByTab.get(tabId) ?? [])];
   }
 
+  /** Mutate the stored entry matching predicate in place; false when none matches. */
+  update(tabId: number, predicate: (entry: T) => boolean, patch: (entry: T) => void): boolean {
+    const entry = this.entriesByTab.get(tabId)?.find(predicate);
+    if (!entry) return false;
+    patch(entry);
+    return true;
+  }
+
   clear(tabId: number): void {
     this.entriesByTab.delete(tabId);
   }

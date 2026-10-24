@@ -43,11 +43,18 @@ function isContentCommand(message: unknown): message is ContentCommand {
   );
 }
 
-browser.runtime.onMessage.addListener((message: unknown) => {
-  if (!isContentCommand(message)) return undefined;
-  return runContentCommand(message).catch((error: unknown) => {
-    throw new Error(error instanceof Error ? error.message : String(error));
+function installContentScript(): void {
+  // tabs.executeScript (the injection fallback) runs in the same sandbox as the declared
+  // content script; a second copy would answer every command twice.
+  if (window.claudeInFirefoxContentLoaded) return;
+  window.claudeInFirefoxContentLoaded = true;
+  browser.runtime.onMessage.addListener((message: unknown) => {
+    if (!isContentCommand(message)) return undefined;
+    return runContentCommand(message).catch((error: unknown) => {
+      throw new Error(error instanceof Error ? error.message : String(error));
+    });
   });
-});
+  installConsoleHook();
+}
 
-installConsoleHook();
+installContentScript();

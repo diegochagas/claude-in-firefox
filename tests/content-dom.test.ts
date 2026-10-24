@@ -129,6 +129,24 @@ describe("pointer and keyboard", () => {
     performKeyboardAction({ kind: "keyboard", action: "key", text: "Return" });
     expect(submitted).toBe(1);
   });
+  it('treats a typed "\\n" as Enter and lets a disabled default button block submission', () => {
+    const input = document.getElementById("q") as HTMLInputElement;
+    const form = document.getElementById("f") as HTMLFormElement;
+    const submitter: Element[] = [];
+    form.requestSubmit = (button?: HTMLElement | null) => {
+      submitter.push(button ?? form);
+      form.dispatchEvent(new Event("submit", { cancelable: true }));
+    };
+    form.addEventListener("submit", (event) => event.preventDefault());
+    input.focus();
+    performKeyboardAction({ kind: "keyboard", action: "type", text: "seiya\n" });
+    expect(input.value).toBe("seiya");
+    expect(submitter).toEqual([document.querySelector("button[type=submit]")]);
+    (document.querySelector("button[type=submit]") as HTMLButtonElement).disabled = true;
+    performKeyboardAction({ kind: "keyboard", action: "key", text: "Return" });
+    expect(submitter).toHaveLength(1);
+  });
+
   it("moves focus with Tab in document order", () => {
     expect(tabbableElements().map((element) => element.id || element.tagName)).toEqual([
       "A",

@@ -2,6 +2,7 @@
 import { dispatchBridgeRequest } from "./command-router";
 import { startConsoleStore } from "./console-store";
 import { NativeHostLink } from "./native-port";
+import { startNavigationTracker } from "./navigation-wait";
 import { startNetworkStore } from "./network-store";
 
 function showStatus(connected: boolean, detail: string): void {
@@ -13,4 +14,5 @@ function showStatus(connected: boolean, detail: string): void {
 
 startConsoleStore();
 startNetworkStore();
+startNavigationTracker();
 new NativeHostLink(dispatchBridgeRequest, showStatus).connect();

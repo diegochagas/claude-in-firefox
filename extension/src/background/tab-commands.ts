@@ -1,5 +1,6 @@
 import type { TabSummary, ViewportInfo } from "../shared/protocol";
 import { resolveTabId, summarizeTab } from "./active-tab";
+import { markTabDriven } from "./driven-tabs";
 import { sendToContent } from "./content-bridge";
 import { waitForNavigationStart, waitForTabLoad } from "./navigation-wait";
 
@@ -11,21 +12,31 @@ const VIEWPORT_PRESETS: Record<string, { width: number; height: number } | null>
 };
 const originalWindowSizes = new Map<number, { width: number; height: number }>();
 
+/** tabs_context: every tab in every window. */
 export async function listTabs(): Promise<TabSummary[]> {
   const tabs = await browser.tabs.query({});
   return tabs.map(summarizeTab);
 }
 
+/** tabs_create: open a tab (blank or at url) and wait for it to load. Example: createTab("https://a.test") */
 export async function createTab(url: unknown): Promise<TabSummary> {
   const tab = await browser.tabs.create({
     url: typeof url === "string" ? normalizeUrl(url) : "about:blank",
     active: true,
   });
-  if (tab.id !== undefined && typeof url === "string")
-    await waitForTabLoad(tab.id, NAVIGATION_TIMEOUT_MS);
+  if (tab.id !== undefined) markTabDriven(tab.id);
+  // The new tab reports "complete" (about:blank) before its first load starts; waiting for the
+  // navigation to begin keeps a following navigate from replacing it (history would have 1 entry).
+  if (tab.id !== undefined && typeof url === "string") await waitForFirstLoad(tab.id);
   return summarizeTab(tab.id === undefined ? tab : await browser.tabs.get(tab.id));
 }
 
+async function waitForFirstLoad(tabId: number): Promise<void> {
+  await waitForNavigationStart(tabId, 1_500);
+  await waitForTabLoad(tabId, NAVIGATION_TIMEOUT_MS);
+}
+
+/** tabs_close: remove one tab. Example: closeTab(12) → "closed tab 12" */
 export async function closeTab(tabId: unknown): Promise<string> {
   const id = await resolveTabId(tabId);
   await browser.tabs.remove(id);

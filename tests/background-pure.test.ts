@@ -16,6 +16,14 @@ describe("redactUrl", () => {
     );
     expect(redactUrl("https://x.test/plain")).toBe("https://x.test/plain");
   });
+  it("keeps ordinary names that merely contain a sensitive word (code review 2026-10-24)", () => {
+    expect(
+      redactUrl("https://x.test/s?keyword=cloth&author=kurumada&monkey=1&session_type=a"),
+    ).toBe("https://x.test/s?keyword=cloth&author=kurumada&monkey=1&session_type=a");
+    expect(redactUrl("https://x.test/s?x-auth-token=1&sessionId=2&pass=3")).toBe(
+      "https://x.test/s?x-auth-token=REDACTED&sessionId=REDACTED&pass=REDACTED",
+    );
+  });
 });
 
 describe("normalizeUrl", () => {

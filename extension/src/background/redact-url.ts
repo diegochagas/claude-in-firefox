@@ -1,4 +1,7 @@
-const SENSITIVE_PARAM = /token|key|auth|secret|password|passwd|session|signature|sig$|credential/i;
+// Whole-word match on the last segment of the name ("api_key", "x-auth-token", "sessionId"),
+// so "keyword", "author" or "monkey" stay visible (code review, 2026-10-24).
+const SENSITIVE_PARAM =
+  /(^|[_-])(api[_-]?key|key|token|auth|authorization|secret|password|passwd|pass|session|sessionid|sig|signature|credentials?)$/i;
 
 /**
  * Hide credential-looking query values before a URL reaches the model.

@@ -67,9 +67,13 @@ export class BridgeClient implements BridgeRequester {
       const lines = new LineReader();
       socket.setEncoding("utf8");
       socket.once("connect", () => resolve(socket));
-      socket.once("error", (error: NodeJS.ErrnoException) =>
-        reject(new FirefoxNotConnectedError(this.socketPath, error.code ?? error.message)),
-      );
+      // A persistent listener: an ECONNRESET after connect must fail pending calls, not crash
+      // the process with an unhandled 'error' event (code review, 2026-10-24).
+      socket.on("error", (error: NodeJS.ErrnoException) => {
+        const failure = new FirefoxNotConnectedError(this.socketPath, error.code ?? error.message);
+        reject(failure);
+        this.failAll(failure);
+      });
       socket.on("data", (chunk: string) => lines.feed(chunk).forEach((line) => this.receive(line)));
       socket.on("close", () =>
         this.failAll(new FirefoxNotConnectedError(this.socketPath, "connection closed")),

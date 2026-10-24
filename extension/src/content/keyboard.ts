@@ -32,11 +32,16 @@ function hasCommandModifier(key: KeyDescription): boolean {
   return key.ctrlKey || key.metaKey || key.altKey;
 }
 
+/** Implicit submission: the form's default button submits, and a disabled one blocks it (HTML spec). */
 function submitFocusedForm(): boolean {
   const control = focusedTextControl();
   const form = control?.form;
   if (!form || control instanceof HTMLTextAreaElement) return false;
-  if (typeof form.requestSubmit === "function") form.requestSubmit();
+  const defaultButton = form.querySelector<HTMLButtonElement>(
+    "button:not([type]), button[type=submit], input[type=submit], input[type=image]",
+  );
+  if (defaultButton?.disabled) return true;
+  if (typeof form.requestSubmit === "function") form.requestSubmit(defaultButton ?? undefined);
   else form.submit();
   return true;
 }
@@ -101,12 +106,14 @@ function pressOnce(key: KeyDescription): void {
 }
 
 function typeCharacter(character: string): void {
-  const key = parseKeyCombo(character === "\n" ? "Return" : character);
+  // A newline is an Enter press: inputs silently drop "\n" from their value, so inserting it
+  // would neither show nor submit anything.
+  if (character === "\n") return pressOnce(parseKeyCombo("Return"));
+  const key = parseKeyCombo(character);
   key.shiftKey = character !== character.toLowerCase() && character === character.toUpperCase();
   const proceed = fireKey("keydown", key);
   fireKey("keypress", key);
-  if (proceed && !insertText(character === "\n" ? "\n" : character) && character === "\n")
-    applyEnter(key);
+  if (proceed) insertText(character);
   fireKey("keyup", key);
 }
 

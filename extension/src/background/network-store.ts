@@ -2,6 +2,7 @@
 // capped) via filterResponseData so read_network_requests can return them by requestId.
 import type { NetworkEntry } from "../shared/protocol";
 import { resolveTabId } from "./active-tab";
+import { forgetDrivenTab, isTabDriven } from "./driven-tabs";
 import { PerTabRingBuffer } from "./ring-buffer";
 import { redactUrl } from "./redact-url";
 
@@ -41,7 +42,7 @@ function captureBody(details: browser.webRequest._OnBeforeRequestDetails): void 
 
 function onBeforeRequest(details: browser.webRequest._OnBeforeRequestDetails): void {
   if (details.tabId < 0) return;
-  const wantsBody = BODY_TYPES.has(details.type);
+  const wantsBody = BODY_TYPES.has(details.type) && isTabDriven(details.tabId);
   requestLog.push(details.tabId, {
     requestId: details.requestId,
     method: details.method,
@@ -58,14 +59,14 @@ function updateEntry(
   requestId: string,
   patch: (entry: NetworkEntry) => Partial<NetworkEntry>,
 ): void {
-  const entries = requestLog.list(tabId);
-  const entry = entries.find((candidate) => candidate.requestId === requestId);
-  if (!entry) return;
-  requestLog.clear(tabId);
-  for (const candidate of entries)
-    requestLog.push(tabId, candidate === entry ? { ...entry, ...patch(entry) } : candidate);
+  requestLog.update(
+    tabId,
+    (entry) => entry.requestId === requestId,
+    (entry) => Object.assign(entry, patch(entry)),
+  );
 }
 
+/** Register the webRequest listeners; call once from the background entry. */
 export function startNetworkStore(): void {
   const filter = { urls: ["<all_urls>"] };
   browser.webRequest.onBeforeRequest.addListener(onBeforeRequest, filter, ["blocking"]);
@@ -79,7 +80,10 @@ export function startNetworkStore(): void {
     (details) => updateEntry(details.tabId, details.requestId, () => ({ error: details.error })),
     filter,
   );
-  browser.tabs.onRemoved.addListener((tabId) => requestLog.clear(tabId));
+  browser.tabs.onRemoved.addListener((tabId) => {
+    requestLog.clear(tabId);
+    forgetDrivenTab(tabId);
+  });
 }
 
 export function formatNetworkEntry(entry: NetworkEntry): string {
@@ -88,6 +92,7 @@ export function formatNetworkEntry(entry: NetworkEntry): string {
   return `${entry.requestId} ${entry.method} ${outcome} ${entry.type} ${entry.url}${body}`;
 }
 
+/** read_network_requests: the tab's request list, or one stored body when query.requestId is set. */
 export async function readNetwork(query: NetworkQuery): Promise<string> {
   if (query.requestId)
     return (

@@ -35,7 +35,8 @@ async function screenshotResult(
 }
 
 async function pngSize(dataUrl: string): Promise<{ width: number; height: number }> {
-  const bytes = atob(stripDataUrl(dataUrl)).slice(16, 24);
+  // IHDR width/height sit at bytes 16–24; 32 base64 chars decode to the first 24 bytes.
+  const bytes = atob(stripDataUrl(dataUrl).slice(0, 32)).slice(16, 24);
   const view = new DataView(Uint8Array.from(bytes, (char) => char.charCodeAt(0)).buffer);
   return { width: view.getUint32(0), height: view.getUint32(4) };
 }

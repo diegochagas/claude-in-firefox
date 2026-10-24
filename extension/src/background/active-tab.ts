@@ -1,4 +1,5 @@
 import type { TabSummary } from "../shared/protocol";
+import { markTabDriven } from "./driven-tabs";
 
 export function summarizeTab(tab: browser.tabs.Tab): TabSummary {
   return {
@@ -17,11 +18,13 @@ export async function resolveTabId(tabId: unknown): Promise<number> {
     await browser.tabs.get(tabId).catch(() => {
       throw new Error(`tab ${tabId} does not exist: call tabs_context for the current tab ids`);
     });
+    markTabDriven(tabId);
     return tabId;
   }
   const [active] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
   const fallback = active ?? (await browser.tabs.query({ active: true }))[0];
   if (fallback?.id === undefined)
     throw new Error("no active tab: open a tab with tabs_create first");
+  markTabDriven(fallback.id);
   return fallback.id;
 }
