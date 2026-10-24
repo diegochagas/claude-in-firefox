@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="diegochagas/claude-in-firefox"
-XPI_BASENAME="claude_browser_bridge"
+XPI_BASENAME="claude-browser-bridge"
 ARTIFACTS="web-ext-artifacts"
 
 log() { printf '%s\n' "$*"; }
@@ -36,6 +36,8 @@ bump_version() {
       const fs = require("fs"); const m = JSON.parse(fs.readFileSync("extension/manifest.json", "utf8"));
       m.version = process.argv[1]; fs.writeFileSync("extension/manifest.json", JSON.stringify(m, null, 2) + "\n");
     ' "$VERSION"
+    # The pre-push gate runs prettier --check; keep the rewritten JSON in its format.
+    npx prettier --write extension/manifest.json package.json >/dev/null
     npm run build --silent
     log "version bumped to $VERSION"
 }
@@ -43,8 +45,12 @@ bump_version() {
 sign_xpi() {
     npx web-ext sign --source-dir dist/extension --channel unlisted --artifacts-dir "$ARTIFACTS" \
         --api-key "$WEB_EXT_API_KEY" --api-secret "$WEB_EXT_API_SECRET" >&2
-    XPI="$(find "$ARTIFACTS" -name "*-$VERSION.xpi" -print -quit)"
-    [[ -f "$XPI" ]] || fail "no signed xpi found in $ARTIFACTS"
+    local signed
+    signed="$(find "$ARTIFACTS" -name "*-$VERSION.xpi" -print -quit)"
+    [[ -f "$signed" ]] || fail "no signed xpi found in $ARTIFACTS"
+    # AMO names unlisted files by a hash slug; give users a readable file name (signature is inside).
+    XPI="$ARTIFACTS/$XPI_BASENAME-$VERSION.xpi"
+    [[ "$signed" == "$XPI" ]] || mv "$signed" "$XPI"
     log "signed: $XPI"
 }
 
@@ -64,7 +70,9 @@ publish() {
     git add package.json package-lock.json extension/manifest.json
     git commit -q -m "Release v$VERSION"
     git tag "v$VERSION"
-    git push && git push origin "v$VERSION"
+    # Explicit failures: inside an && list, set -e would not stop a failed push (v0.1.0 lesson).
+    git push || fail "git push failed (the pre-push gate must pass); release not created"
+    git push origin "v$VERSION" || fail "pushing tag v$VERSION failed; release not created"
     gh release create "v$VERSION" "$XPI" "$ARTIFACTS/updates.json" --repo "$REPO" \
         --title "v$VERSION" --notes "Signed Firefox extension v$VERSION. Install the .xpi once; later versions arrive through the update channel."
     log "published https://github.com/$REPO/releases/tag/v$VERSION"
