@@ -69,16 +69,16 @@ to `~/.mozilla/native-messaging-hosts/claude_in_firefox.json` (pointing at this 
 registers the MCP server in Claude Code (user scope) as `claude-in-firefox`. Re-running it is
 safe. Pass `--no-mcp` to skip the Claude Code registration.
 
-Then load the extension in Firefox:
+Then install the extension in Firefox, one of:
 
-- **Try it now (temporary):** `npm run firefox` opens your default profile with the
-  extension loaded until Firefox quits, or use `about:debugging#/runtime/this-firefox` →
+- **Signed release (recommended):** download the latest `.xpi` from
+  [Releases](https://github.com/diegochagas/claude-in-firefox/releases/latest) and open it in
+  Firefox (`about:addons` → gear → _Install Add-on From File_, or drag it onto a window). It is
+  signed by Mozilla through the unlisted channel, so it stays installed, and the manifest's
+  `update_url` points at the release's `updates.json`, so Firefox pulls newer versions by itself.
+- **Try it now (temporary):** `npm run firefox` opens your default profile with the extension
+  loaded until Firefox quits, or use `about:debugging#/runtime/this-firefox` →
   _Load Temporary Add-on_ → `dist/extension/manifest.json`.
-- **Keep it (signed):** release Firefox only keeps signed add-ons. Create API credentials at
-  addons.mozilla.org, then `WEB_EXT_API_KEY=… WEB_EXT_API_SECRET=… npm run sign` produces a
-  signed `.xpi` under `web-ext-artifacts/` (unlisted channel: private to you). Install it
-  from `about:addons` → gear → _Install Add-on From File_. Rebuild and re-sign with a bumped
-  version in `extension/manifest.json` after changes.
 
 The toolbar badge reads **on** when the native host is connected. A new Claude Code session
 then lists the `claude-in-firefox` tools; pick a tab with `tabs_context` and go.
@@ -95,6 +95,22 @@ Unit tests run the content-script modules under jsdom and the MCP tools against 
 `FakeBridge`. The e2e suite starts a local fixture server, launches Firefox headless with the
 built extension, waits for the native host's socket (isolated via `CLAUDE_IN_FIREFOX_SOCKET`)
 and calls every tool through an in-memory MCP client.
+
+## Releasing
+
+```bash
+./scripts/release 0.2.0 --dry-run   # build + lint, publishes nothing
+./scripts/release 0.2.0             # bump, sign with AMO, publish xpi + updates.json
+```
+
+`scripts/release` needs addons.mozilla.org API credentials in `config.env` (see
+`config.env.example`; the file is gitignored). It bumps `extension/manifest.json` and
+`package.json`, builds, signs `dist/extension` on the unlisted channel, regenerates
+`updates.json` (previous versions kept, `sha256` hash per file via
+`scripts/build-updates-json.ts`), commits and tags `v<version>`, pushes, and creates the
+GitHub Release with the `.xpi` and `updates.json` attached. The `update_url` always resolves
+through `releases/latest/download/updates.json`, so the newest release is what installed
+copies see.
 
 ## Limitations
 

@@ -7,10 +7,14 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "claude-in-firefox@diegochagas.dev",
-      "strict_min_version": "128.0"
+      "strict_min_version": "128.0",
+      "update_url": "https://github.com/diegochagas/claude-in-firefox/releases/latest/download/updates.json"
     }
   },
-  "icons": { "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "icons": {
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "permissions": [
     "nativeMessaging",
     "tabs",
@@ -20,7 +24,10 @@
     "storage",
     "<all_urls>"
   ],
-  "background": { "scripts": ["background.js"], "persistent": true },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -30,7 +37,9 @@
     }
   ],
   "browser_action": {
-    "default_icon": { "48": "icons/icon-48.png" },
+    "default_icon": {
+      "48": "icons/icon-48.png"
+    },
     "default_title": "Claude in Firefox: not connected"
   }
 }

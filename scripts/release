@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# scripts/release <version> [--dry-run]: ship a signed build of the extension.
+#   1. bump extension/manifest.json + package.json to <version>
+#   2. build and sign the xpi with addons.mozilla.org (unlisted channel)
+#   3. write updates.json (previous entries kept) and publish both to a GitHub Release v<version>
+# Firefox then updates installed copies through the manifest's update_url.
+# Credentials: WEB_EXT_API_KEY and WEB_EXT_API_SECRET in the environment or in ./config.env (gitignored).
+# --dry-run builds and prints every step but signs, commits, tags and publishes nothing.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+REPO="diegochagas/claude-in-firefox"
+XPI_BASENAME="claude_in_firefox"
+ARTIFACTS="web-ext-artifacts"
+
+log() { printf '%s\n' "$*"; }
+fail() { printf 'release: %s\n' "$*" >&2; exit 1; }
+
+load_credentials() {
+    # shellcheck source=/dev/null
+    [[ -f config.env ]] && { set -a; source ./config.env; set +a; }
+    [[ -n "${WEB_EXT_API_KEY:-}" && -n "${WEB_EXT_API_SECRET:-}" ]] ||
+        fail "WEB_EXT_API_KEY / WEB_EXT_API_SECRET missing: create them at https://addons.mozilla.org/developers/addon/api/key/ and put them in config.env"
+}
+
+check_preconditions() {
+    [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version \"$VERSION\" must be MAJOR.MINOR.PATCH"
+    [[ -z "$(git status --porcelain)" ]] || fail "working tree not clean; commit or stash first"
+    git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && fail "tag v$VERSION already exists"
+    command -v gh >/dev/null || fail "gh CLI not found"
+}
+
+bump_version() {
+    npm version "$VERSION" --no-git-tag-version --allow-same-version >/dev/null
+    node -e '
+      const fs = require("fs"); const m = JSON.parse(fs.readFileSync("extension/manifest.json", "utf8"));
+      m.version = process.argv[1]; fs.writeFileSync("extension/manifest.json", JSON.stringify(m, null, 2) + "\n");
+    ' "$VERSION"
+    npm run build --silent
+    log "version bumped to $VERSION"
+}
+
+sign_xpi() {
+    npx web-ext sign --source-dir dist/extension --channel unlisted --artifacts-dir "$ARTIFACTS" \
+        --api-key "$WEB_EXT_API_KEY" --api-secret "$WEB_EXT_API_SECRET" >&2
+    XPI="$(find "$ARTIFACTS" -name "*-$VERSION.xpi" -print -quit)"
+    [[ -f "$XPI" ]] || fail "no signed xpi found in $ARTIFACTS"
+    log "signed: $XPI"
+}
+
+write_updates_json() {
+    local previous=""
+    if gh release download --repo "$REPO" --pattern updates.json --dir "$ARTIFACTS" --clobber 2>/dev/null; then
+        previous="$ARTIFACTS/updates.json"
+    fi
+    local url
+    url="https://github.com/$REPO/releases/download/v$VERSION/$(basename "$XPI")"
+    node scripts/build-updates-json.ts "$VERSION" "$XPI" "$url" $previous > "$ARTIFACTS/updates.next.json"
+    mv "$ARTIFACTS/updates.next.json" "$ARTIFACTS/updates.json"
+    log "updates.json written ($url)"
+}
+
+publish() {
+    git add package.json package-lock.json extension/manifest.json
+    git commit -q -m "Release v$VERSION"
+    git tag "v$VERSION"
+    git push && git push origin "v$VERSION"
+    gh release create "v$VERSION" "$XPI" "$ARTIFACTS/updates.json" --repo "$REPO" \
+        --title "v$VERSION" --notes "Signed Firefox extension v$VERSION. Install the .xpi once; later versions arrive through the update channel."
+    log "published https://github.com/$REPO/releases/tag/v$VERSION"
+}
+
+dry_run() {
+    log "dry run: would bump to $VERSION, sign dist/extension with AMO (unlisted), write updates.json and publish"
+    log "         $XPI_BASENAME-$VERSION.xpi + updates.json to https://github.com/$REPO/releases/tag/v$VERSION"
+    npm run build --silent
+    npx web-ext lint --source-dir dist/extension --warnings-as-errors=false >&2 || true
+    git checkout -q -- package.json package-lock.json extension/manifest.json 2>/dev/null || true
+}
+
+main() {
+    VERSION="${1:-}"; [[ -n "$VERSION" ]] || fail "usage: scripts/release <version> [--dry-run]"
+    check_preconditions
+    if [[ "${2:-}" == "--dry-run" ]]; then dry_run; return; fi
+    load_credentials
+    bump_version
+    sign_xpi
+    write_updates_json
+    publish
+}
+
+main "$@"

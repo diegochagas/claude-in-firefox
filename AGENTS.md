@@ -12,7 +12,8 @@ code or assets). Three programs, one TypeScript repo, bundled by esbuild into `d
 - `native-host/src/` — stdio framing ⇄ Unix socket (JSON lines), multiplexes several MCP servers
 - `mcp-server/src/` — MCP tools (`tools/*.ts`), `BridgeClient`, `ToolRegistry` (the only file that touches the MCP SDK)
 - `tests/` (vitest unit, jsdom for content modules, `FakeBridge` for tools), `e2e/` (real headless Firefox via web-ext)
-- `scripts/check` gate, `scripts/setup` bootstrap, `scripts/e2e` end-to-end run
+- `scripts/check` gate, `scripts/setup` bootstrap, `scripts/e2e` end-to-end run,
+  `scripts/release <version>` (sign with AMO + GitHub Release with xpi and updates.json; `--dry-run` publishes nothing)
 
 ## Testing and shipping (dev-playbook)
 
@@ -65,4 +66,7 @@ Formatter: prettier; `scripts/check` runs it, don't discuss style.
   pickers, popups and `prefers-color-scheme` emulation are out of reach (no debugger API in Firefox).
 - `tabs.captureTab` works on background tabs; its `rect` is document-relative, the model's zoom region is viewport-relative.
 - Native messaging frames are 4-byte little-endian length + JSON; messages to the extension max 1 MiB.
-- Release Firefox only runs signed extensions permanently: `web-ext run` (temporary) or `npm run sign` (AMO unlisted).
+- Release Firefox only runs signed extensions permanently: `web-ext run` (temporary) or a signed xpi
+  from `scripts/release` (AMO unlisted). The manifest's `update_url` points at
+  `releases/latest/download/updates.json`, so every release must attach a fresh `updates.json`.
+- AMO credentials live only in `config.env` (gitignored); never in the workflow files or docs.
