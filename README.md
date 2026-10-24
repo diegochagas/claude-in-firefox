@@ -1,6 +1,7 @@
 # Claude in Firefox
 
-A Firefox WebExtension plus an [MCP](https://modelcontextprotocol.io) server that lets
+A Firefox WebExtension (shown in Firefox as **Claude Browser Bridge**, since add-on names may
+not contain the Firefox trademark) plus an [MCP](https://modelcontextprotocol.io) server that lets
 **Claude Code** (CLI and desktop app) drive Firefox the way the official _Claude in Chrome_
 extension drives Chrome: list tabs, navigate, click, type, scroll, take screenshots, read the
 page as an accessibility outline, fill forms, run JavaScript, and read console and network logs.

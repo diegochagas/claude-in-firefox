@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Claude in Firefox",
+  "name": "Claude Browser Bridge",
   "version": "0.1.0",
-  "description": "Lets Claude Code drive this Firefox: tabs, clicks, typing, screenshots, page reading, console and network logs.",
+  "description": "Lets Claude Code drive this browser: tabs, clicks, typing, screenshots, page reading, console and network logs. Companion of the claude-in-firefox MCP server.",
   "homepage_url": "https://github.com/diegochagas/claude-in-firefox",
   "browser_specific_settings": {
     "gecko": {
@@ -43,6 +43,6 @@
     "default_icon": {
       "48": "icons/icon-48.png"
     },
-    "default_title": "Claude in Firefox: not connected"
+    "default_title": "Claude Browser Bridge: not connected"
   }
 }

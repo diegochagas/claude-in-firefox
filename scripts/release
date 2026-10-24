@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="diegochagas/claude-in-firefox"
-XPI_BASENAME="claude_in_firefox"
+XPI_BASENAME="claude_browser_bridge"
 ARTIFACTS="web-ext-artifacts"
 
 log() { printf '%s\n' "$*"; }

@@ -70,7 +70,7 @@ export function installConsoleHook(): void {
     LEVELS.forEach(wrapConsoleMethod);
   } catch (error) {
     // Some privileged or sandboxed documents refuse exportFunction; errors are still captured.
-    queue("warn", `Claude in Firefox could not hook console: ${String(error)}`);
+    queue("warn", `Claude Browser Bridge could not hook console: ${String(error)}`);
   }
   hookErrors();
 }

@@ -69,4 +69,5 @@ Formatter: prettier; `scripts/check` runs it, don't discuss style.
 - Release Firefox only runs signed extensions permanently: `web-ext run` (temporary) or a signed xpi
   from `scripts/release` (AMO unlisted). The manifest's `update_url` points at
   `releases/latest/download/updates.json`, so every release must attach a fresh `updates.json`.
+- The add-on's manifest `name` is "Claude Browser Bridge": AMO rejects names containing "Firefox" or "Mozilla".
 - AMO credentials live only in `config.env` (gitignored); never in the workflow files or docs.

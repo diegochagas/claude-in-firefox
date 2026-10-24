@@ -19,7 +19,7 @@ interface PendingCall {
 export class FirefoxNotConnectedError extends Error {
   constructor(socketPath: string, cause: string) {
     super(
-      `Firefox is not connected (${cause} at ${socketPath}). Open Firefox with the "Claude in Firefox" extension enabled; its toolbar badge shows "on" when the native host is running.`,
+      `Firefox is not connected (${cause} at ${socketPath}). Open Firefox with the "Claude Browser Bridge" extension enabled; its toolbar badge shows "on" when the native host is running.`,
     );
     this.name = "FirefoxNotConnectedError";
   }
