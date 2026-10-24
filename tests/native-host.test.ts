@@ -50,13 +50,15 @@ describe("PendingRequestTable", () => {
 });
 
 describe("bridgeSocketPath", () => {
-  it("prefers the explicit override, then XDG_RUNTIME_DIR, then /tmp", () => {
-    expect(
-      bridgeSocketPath({ CLAUDE_IN_FIREFOX_SOCKET: "/x/y.sock", XDG_RUNTIME_DIR: "/run/user/7" }),
-    ).toBe("/x/y.sock");
-    expect(bridgeSocketPath({ XDG_RUNTIME_DIR: "/run/user/7" })).toBe(
+  it("prefers the explicit override, then /run/user/<uid>, then /tmp, ignoring XDG_RUNTIME_DIR", () => {
+    const present = () => true;
+    const absent = () => false;
+    expect(bridgeSocketPath({ CLAUDE_IN_FIREFOX_SOCKET: "/x/y.sock" }, 7, present)).toBe(
+      "/x/y.sock",
+    );
+    expect(bridgeSocketPath({ XDG_RUNTIME_DIR: "/elsewhere" }, 7, present)).toBe(
       "/run/user/7/claude-in-firefox.sock",
     );
-    expect(bridgeSocketPath({})).toMatch(/^\/tmp\/claude-in-firefox-\d+\.sock$/);
+    expect(bridgeSocketPath({}, 7, absent)).toBe("/tmp/claude-in-firefox-7.sock");
   });
 });
