@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font:
+          13px/1.4 system-ui,
+          sans-serif;
+      }
+      body {
+        margin: 0;
+        width: 320px;
+        padding: 12px 14px;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 8px;
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #9e9e9e;
+        flex: none;
+      }
+      .dot.connected {
+        background: #2e7d32;
+      }
+      .detail {
+        opacity: 0.75;
+        font-size: 12px;
+      }
+      button {
+        font: inherit;
+        padding: 4px 10px;
+        margin-left: auto;
+      }
+      h2 {
+        font-size: 12px;
+        margin: 10px 0 4px;
+        opacity: 0.75;
+        text-transform: uppercase;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      li {
+        padding: 3px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      li span {
+        opacity: 0.6;
+        font-size: 12px;
+      }
+      .hint {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      code {
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Claude Browser Bridge <span id="version" class="detail"></span></h1>
+    <div class="status">
+      <span id="dot" class="dot"></span>
+      <span id="state">…</span>
+      <button id="reconnect" type="button">Reconnect</button>
+    </div>
+    <div id="detail" class="detail"></div>
+    <h2>Tabs driven by Claude</h2>
+    <ul id="tabs"></ul>
+    <p class="hint" id="hint"></p>
+    <script src="popup.js"></script>
+  </body>
+</html>

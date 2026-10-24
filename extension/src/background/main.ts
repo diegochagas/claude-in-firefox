@@ -4,8 +4,10 @@ import { startConsoleStore } from "./console-store";
 import { NativeHostLink } from "./native-port";
 import { startNavigationTracker } from "./navigation-wait";
 import { startNetworkStore } from "./network-store";
+import { recordHostStatus, startPopupApi } from "./popup-api";
 
 function showStatus(connected: boolean, detail: string): void {
+  recordHostStatus(connected, detail);
   void browser.browserAction.setBadgeText({ text: connected ? "on" : "off" });
   void browser.browserAction.setBadgeBackgroundColor({ color: connected ? "#2e7d32" : "#9e9e9e" });
   void browser.browserAction.setTitle({ title: `Claude Browser Bridge: ${detail}` });
@@ -15,4 +17,6 @@ function showStatus(connected: boolean, detail: string): void {
 startConsoleStore();
 startNetworkStore();
 startNavigationTracker();
-new NativeHostLink(dispatchBridgeRequest, showStatus).connect();
+const hostLink = new NativeHostLink(dispatchBridgeRequest, showStatus);
+startPopupApi(() => hostLink.reconnectNow());
+hostLink.connect();

@@ -81,7 +81,9 @@ Then install the extension in Firefox, one of:
   loaded until Firefox quits, or use `about:debugging#/runtime/this-firefox` →
   _Load Temporary Add-on_ → `dist/extension/manifest.json`.
 
-The toolbar badge reads **on** when the native host is connected. A new Claude Code session
+The toolbar badge reads **on** when the native host is connected; clicking the icon opens a
+status popup (connection state, tabs Claude has driven, a Reconnect button). There is no chat
+panel: Claude drives the browser from a Claude Code session. A new Claude Code session
 then lists the `claude-in-firefox` tools; pick a tab with `tabs_context` and go.
 
 ## Development

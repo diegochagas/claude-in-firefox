@@ -43,6 +43,7 @@
     "default_icon": {
       "48": "icons/icon-48.png"
     },
-    "default_title": "Claude Browser Bridge: not connected"
+    "default_title": "Claude Browser Bridge: not connected",
+    "default_popup": "popup.html"
   }
 }

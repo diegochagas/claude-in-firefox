@@ -8,6 +8,7 @@ code or assets). Three programs, one TypeScript repo, bundled by esbuild into `d
 
 - `extension/src/background/` — tabs, screenshots, console/network stores, native port, command router
 - `extension/src/content/` — runs inside pages: outline/refs, pointer, keyboard, scroll, forms, eval, console hook
+- `extension/src/popup/` — toolbar popup (status, driven tabs, Reconnect); `render.ts` is pure DOM, tested under jsdom
 - `extension/src/shared/` — wire types (`protocol.ts`) and key-name table used by all three programs
 - `native-host/src/` — stdio framing ⇄ Unix socket (JSON lines), multiplexes several MCP servers
 - `mcp-server/src/` — MCP tools (`tools/*.ts`), `BridgeClient`, `ToolRegistry` (the only file that touches the MCP SDK)

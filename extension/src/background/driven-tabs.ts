@@ -10,6 +10,10 @@ export function isTabDriven(tabId: number): boolean {
   return drivenTabIds.has(tabId);
 }
 
+export function listDrivenTabIds(): number[] {
+  return [...drivenTabIds];
+}
+
 export function forgetDrivenTab(tabId: number): void {
   drivenTabIds.delete(tabId);
 }

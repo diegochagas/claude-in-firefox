@@ -18,6 +18,17 @@ export class NativeHostLink {
     private readonly onStatus: StatusListener,
   ) {}
 
+  /** Drop the current port (if any) and connect again right away; used by the popup's Reconnect. */
+  reconnectNow(): void {
+    this.reconnectDelay = RECONNECT_MIN_MS;
+    if (this.port) {
+      const port = this.port;
+      this.port = undefined;
+      port.disconnect();
+    }
+    this.connect();
+  }
+
   connect(): void {
     const port = browser.runtime.connectNative(NATIVE_HOST_NAME);
     this.port = port;
@@ -27,6 +38,8 @@ export class NativeHostLink {
   }
 
   private handleDisconnect(port: browser.runtime.Port): void {
+    // A port we dropped on purpose (reconnectNow) must not schedule a second reconnect.
+    if (this.port !== port) return;
     const reason = port.error?.message ?? "host exited";
     this.port = undefined;
     this.onStatus(false, `disconnected: ${reason}; retrying in ${this.reconnectDelay / 1000}s`);
