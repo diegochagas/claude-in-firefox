@@ -172,6 +172,17 @@ describe("ChatSessionTable", () => {
     expect(spawned[2]).toMatchObject({ resumeSessionId: "explicit-session" });
   });
 
+  it("ignores events of a process it dropped (model switch) so the successor's turn is not ended", async () => {
+    const { sessions, spawned, emitted } = table();
+    sessions.handle(send("c1", "one", "sonnet"));
+    sessions.handle(send("c1", "two", "opus"));
+    expect(spawned[0]!.ended).toBe(true);
+    await new Promise((wake) => setTimeout(wake, 5));
+    expect(emitted.filter((e) => e.event.type === "session")).toHaveLength(1);
+    expect(spawned[1]!.prompts).toEqual(["two"]);
+    expect(sessions.liveCount).toBe(1);
+  });
+
   it("evicts the oldest idle process when full and ends everything on shutdown", () => {
     const { sessions, spawned } = table(2);
     sessions.handle(send("c1", "a"));

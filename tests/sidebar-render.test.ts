@@ -88,6 +88,8 @@ describe("renderSidebar", () => {
       "p1:false",
     ]);
     expect(messages.querySelectorAll(".permission")[1]!.textContent).toContain("Denied");
+    expect(messages.querySelector(".permission pre")!.textContent).toContain('"file_path": "/a"');
+    expect(messages.querySelector(".permission")!.textContent).toContain("Write /a");
     expect(messages.querySelector(".status-line.error")!.textContent).toBe("boom");
     expect(document.getElementById("status")!.textContent).toBe("Claude is working…");
     expect((document.getElementById("send") as HTMLButtonElement).disabled).toBe(true);

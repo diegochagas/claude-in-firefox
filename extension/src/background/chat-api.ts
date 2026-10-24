@@ -98,15 +98,36 @@ export async function sendChatTurn(
   const firstTurn = conversation.items.length === 0;
   const prompt = composeChatPrompt(turnText, await pickContextTab(), firstTurn);
   applyAndBroadcast(conversation, { type: "user", text: turnText });
-  sendToHost({
-    kind: "chat",
-    method: "chat.send",
-    conversationId: conversation.conversationId,
-    prompt,
-    model: conversation.model || undefined,
-    resumeSessionId: conversation.sessionId,
-  });
+  forwardTurn(conversation, prompt);
   return { conversationId: conversation.conversationId };
+}
+
+function forwardTurn(conversation: ChatConversation, prompt: string): void {
+  try {
+    sendToHost({
+      kind: "chat",
+      method: "chat.send",
+      conversationId: conversation.conversationId,
+      prompt,
+      model: conversation.model || undefined,
+      resumeSessionId: conversation.sessionId,
+    });
+  } catch (error) {
+    failTurn(conversation, error);
+    throw error;
+  }
+}
+
+/** The turn never reached claude: show why and free the conversation (code review, 2026-10-24). */
+function failTurn(conversation: ChatConversation, error: unknown): void {
+  const resultText = error instanceof Error ? error.message : String(error);
+  applyAndBroadcast(conversation, {
+    type: "turn_end",
+    isError: true,
+    resultText,
+    durationMs: 0,
+    costUsd: 0,
+  });
 }
 
 /** chat.transcript bridge method: the current (or given) conversation. */
@@ -144,11 +165,12 @@ function reportFailure(port: browser.runtime.Port, command: SidebarCommand, erro
   const conversationId = "conversationId" in command ? command.conversationId : undefined;
   const conversation = conversationId ? findConversation(conversationId) : currentConversation();
   const message = error instanceof Error ? error.message : String(error);
-  if (conversation) applyAndBroadcast(conversation, { type: "error", message });
-  else port.postMessage(snapshotOf(currentConversation()));
+  // A failed send already carries its own status line (failTurn).
+  if (!conversation) return port.postMessage(snapshotOf(currentConversation()));
+  if (command.kind !== "sidebarSend") applyAndBroadcast(conversation, { type: "error", message });
 }
 
-function attachSidebar(port: browser.runtime.Port): void {
+function attachSidebar(port: browser.runtime.Port, storeReady: Promise<void>): void {
   sidebarPorts.add(port);
   port.onDisconnect.addListener(() => sidebarPorts.delete(port));
   port.onMessage.addListener((message: unknown) => {
@@ -157,14 +179,18 @@ function attachSidebar(port: browser.runtime.Port): void {
       reportFailure(port, message, error),
     );
   });
-  port.postMessage(snapshotOf(currentConversation()));
+  // The saved conversations must be in before the first snapshot, or a sidebar opened at
+  // startup would get (and persist) a fresh chat in their place (code review, 2026-10-24).
+  void storeReady.then(() => port.postMessage(snapshotOf(currentConversation())));
 }
 
 /** Start serving sidebars; `send` is the NativeHostLink's sendChatCommand. */
 export function startChatApi(send: HostSender): void {
   sendToHost = send;
-  void loadChatStore();
+  const storeReady = loadChatStore().catch((error: unknown) =>
+    console.warn(JSON.stringify({ event: "chat-store-load-failed", error: String(error) })),
+  );
   browser.runtime.onConnect.addListener((port) => {
-    if (port.name === SIDEBAR_PORT_NAME) attachSidebar(port);
+    if (port.name === SIDEBAR_PORT_NAME) attachSidebar(port, storeReady);
   });
 }

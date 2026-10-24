@@ -97,6 +97,11 @@ export class ClaudeChatProcess {
     this.child.stdout?.on("data", (chunk: string) =>
       lines.feed(chunk).forEach((line) => this.receiveLine(line)),
     );
+    // Writing to a claude that just died raises EPIPE on stdin; unhandled it would take the
+    // whole host (and every MCP client) down (code review, 2026-10-24).
+    this.child.stdin?.on("error", (error: NodeJS.ErrnoException) =>
+      this.emit({ type: "error", message: `claude stdin closed (${error.code ?? error.message})` }),
+    );
     this.child.stderr?.setEncoding("utf8");
     this.child.stderr?.on("data", (chunk: string) => {
       this.stderrTail = (this.stderrTail + chunk).slice(-STDERR_TAIL_CHARS);

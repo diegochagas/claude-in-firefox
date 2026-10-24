@@ -15,7 +15,7 @@ function appendInline(document: Document, parent: HTMLElement, text: string): vo
 }
 
 function inlineNode(document: Document, match: RegExpMatchArray): Node {
-  const [whole, code, bold, link, href] = match;
+  const [, code, bold, link, href] = match;
   if (code) return elementWithText(document, "code", code.slice(1, -1));
   if (bold) return elementWithText(document, "strong", bold.slice(2, -2));
   const anchor = elementWithText(document, "a", link!.slice(1, link!.indexOf("]")));
@@ -23,7 +23,7 @@ function inlineNode(document: Document, match: RegExpMatchArray): Node {
   // The sidebar must not navigate itself away: links open as tabs.
   anchor.target = "_blank";
   anchor.rel = "noopener";
-  return whole ? anchor : anchor;
+  return anchor;
 }
 
 function elementWithText<K extends keyof HTMLElementTagNameMap>(

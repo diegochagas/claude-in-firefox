@@ -2,6 +2,7 @@
 // extension (stdin/stdout, framed JSON) to MCP servers (Unix socket, JSON lines).
 import { createServer, type Server, type Socket } from "node:net";
 import { unlinkSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   isChatCommand,
   type ChatEvent,
@@ -87,7 +88,7 @@ function startClaudeProcess(
   emit: (event: ChatEvent) => void,
 ): ClaudeChatProcess {
   // dist/mcp-server.js sits next to this bundle (dist/native-host.js).
-  const mcpServerPath = new URL("./mcp-server.js", import.meta.url).pathname;
+  const mcpServerPath = fileURLToPath(new URL("./mcp-server.js", import.meta.url));
   const args = buildClaudeArgs({
     model,
     resumeSessionId,

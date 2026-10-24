@@ -63,7 +63,9 @@ Formatter: prettier; `scripts/check` runs it, don't discuss style.
 - Logging: JSON lines on stderr in the native host and MCP server (stdout is the protocol channel); the extension logs JSON to its console.
 - Defensive code this repo needs (implement these; flag anything else instead of adding it silently):
   per-request timeout on the bridge (60s) and page evaluation (30s); reconnect with backoff on the native port;
-  content-script injection fallback for tabs opened before the extension; truncation of every page-derived text with an explicit note.
+  content-script injection fallback for tabs opened before the extension; truncation of every page-derived text with an explicit note;
+  sidebar chat: a `claude` turn that ignores an interrupt is killed after 5s (`CANCEL_GRACE_MS`, the session stays
+  resumable), the sidebar page reconnects its Port 1s after the background drops it.
 - README has an "Architecture" section (diagram of the main flow); update it when the shape changes.
 - `scripts/setup` bootstraps a clean machine idempotently; `scripts/check` is the single validation command.
 

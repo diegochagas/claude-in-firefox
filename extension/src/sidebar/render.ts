@@ -48,9 +48,12 @@ function permissionElement(
   card.className = "permission";
   const title = document.createElement("strong");
   title.textContent = `Claude wants to use ${item.toolName}`;
+  const description = document.createElement("div");
+  description.textContent = item.description;
+  // The exact input is what the user approves (a Bash command, a file path): always shown.
   const input = document.createElement("pre");
-  input.textContent = item.description || JSON.stringify(item.input, null, 1);
-  card.append(title, input);
+  input.textContent = JSON.stringify(item.input, null, 1);
+  card.append(title, description, input);
   card.append(
     item.decision
       ? decisionLabel(document, item.decision)
