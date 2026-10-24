@@ -73,7 +73,8 @@ dry_run() {
     log "dry run: would bump to $VERSION, sign dist/extension with AMO (unlisted), write updates.json and publish"
     log "         $XPI_BASENAME-$VERSION.xpi + updates.json to https://github.com/$REPO/releases/tag/v$VERSION"
     npm run build --silent
-    npx web-ext lint --source-dir dist/extension --warnings-as-errors=false >&2 || true
+    # --self-hosted: update_url is only forbidden for AMO-listed add-ons; ours is unlisted.
+    npx web-ext lint --source-dir dist/extension --self-hosted >&2 || fail "web-ext lint reported errors"
     git checkout -q -- package.json package-lock.json extension/manifest.json 2>/dev/null || true
 }
 
