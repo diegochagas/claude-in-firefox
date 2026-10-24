@@ -27,7 +27,27 @@ export function summarizeToolInput(input: unknown): string {
     : summary;
 }
 
+function imageElement(
+  document: Document,
+  image: { mediaType: string; base64: string },
+): HTMLElement {
+  const figure = document.createElement("img");
+  figure.className = "shot";
+  figure.alt = "screenshot returned by the tool";
+  figure.src = `data:${image.mediaType};base64,${image.base64}`;
+  return figure;
+}
+
 function toolElement(document: Document, item: Extract<ChatItem, { role: "tool" }>): HTMLElement {
+  const details = toolDetails(document, item);
+  if (!item.images?.length) return details;
+  const wrapper = document.createElement("div");
+  wrapper.className = "tool-with-images";
+  wrapper.append(details, ...item.images.map((image) => imageElement(document, image)));
+  return wrapper;
+}
+
+function toolDetails(document: Document, item: Extract<ChatItem, { role: "tool" }>): HTMLElement {
   const details = document.createElement("details");
   details.className = `tool${item.isError ? " error" : ""}`;
   const summary = document.createElement("summary");

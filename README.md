@@ -43,7 +43,9 @@ Under the hood the native host runs **your own Claude Code** for each conversati
 (`claude -p --output-format stream-json --input-format stream-json`, resumed with
 `--resume` when the process is gone), so it uses your Claude Code login and plan, no API key,
 and nothing goes through any server of this project. Replies stream as they arrive; tool calls
-show as collapsible lines with their result.
+show as collapsible lines with their result, and screenshots Claude takes appear inline (kept in
+memory only, so they are gone after a restart; one over ~700 KB is replaced by a note, since
+native messaging frames are capped at 1 MiB).
 
 - **Permissions.** The `claude-in-firefox` tools are pre-approved. Anything else Claude Code
   would ask about (Bash, file writes, other tools) appears in the sidebar as an

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  IMAGE_MAX_BASE64_CHARS,
   TOOL_RESULT_MAX_CHARS,
+  toolResultImages,
   toolResultText,
   translateClaudeLine,
 } from "../native-host/src/claude-stream";
@@ -85,6 +87,51 @@ describe("translateClaudeLine", () => {
     ]);
     expect(toolResultText(long)).toMatch(/…\s\[truncated, 650 chars\]$/);
     expect(toolResultText([{ type: "image" }])).toBe("[image]");
+  });
+  it("carries screenshot images through, dropping the ones over the frame budget with a note", () => {
+    const small = {
+      type: "image",
+      source: { type: "base64", media_type: "image/png", data: "iVBOR" },
+    };
+    const huge = {
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/png",
+        data: "x".repeat(IMAGE_MAX_BASE64_CHARS + 1),
+      },
+    };
+    const [event] = translateClaudeLine(
+      line({
+        type: "user",
+        message: {
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: "t1",
+              content: [small, huge, { type: "text", text: "screenshot 10×10" }],
+            },
+          ],
+        },
+      }),
+    );
+    expect(event).toMatchObject({
+      type: "tool_result",
+      toolUseId: "t1",
+      images: [{ mediaType: "image/png", base64: "iVBOR" }],
+    });
+    expect((event as { text: string }).text).toBe(
+      `[image]\n[image]\nscreenshot 10×10\n[image of ${Math.round((IMAGE_MAX_BASE64_CHARS + 1) / 1024)} KB not shown: over the sidebar's size limit]`,
+    );
+    expect(toolResultImages("plain text")).toEqual({ images: [], omitted: [] });
+    expect(
+      translateClaudeLine(
+        line({
+          type: "user",
+          message: { content: [{ type: "tool_result", tool_use_id: "t2", content: "ok" }] },
+        }),
+      )[0],
+    ).not.toHaveProperty("images");
   });
   it("maps permission prompts and results", () => {
     expect(

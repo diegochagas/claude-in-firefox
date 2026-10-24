@@ -6,6 +6,7 @@ import {
   createConversation,
   settleConversation,
   summarizeConversation,
+  withoutImages,
 } from "../shared/chat-transcript";
 
 const STORAGE_KEY = "chatConversations";
@@ -57,7 +58,8 @@ export function listConversationSummaries(): ChatConversationSummary[] {
 }
 
 function trimmed(conversation: ChatConversation): ChatConversation {
-  return { ...conversation, items: conversation.items.slice(-KEEP_ITEMS_PER_CONVERSATION) };
+  const kept = withoutImages(conversation);
+  return { ...kept, items: kept.items.slice(-KEEP_ITEMS_PER_CONVERSATION) };
 }
 
 /** Write the newest conversations to storage.local. */

@@ -55,6 +55,14 @@ describe("renderSidebar", () => {
       },
       { role: "tool", toolUseId: "t2", name: "Bash", input: { command: "ls" } },
       {
+        role: "tool",
+        toolUseId: "t3",
+        name: "mcp__claude-in-firefox__computer",
+        input: { action: "screenshot" },
+        resultText: "screenshot 10×10",
+        images: [{ mediaType: "image/png", base64: "iVBOR" }],
+      },
+      {
         role: "permission",
         requestId: "p1",
         toolName: "Write",
@@ -82,6 +90,8 @@ describe("renderSidebar", () => {
     const tools = messages.querySelectorAll("details.tool summary");
     expect(tools[0]!.textContent).toBe("⚙ find query=button");
     expect(tools[1]!.textContent).toBe("⚙ Bash command=ls …");
+    const image = messages.querySelector<HTMLImageElement>(".tool-with-images img.shot")!;
+    expect(image.getAttribute("src")).toBe("data:image/png;base64,iVBOR");
     const buttons = messages.querySelectorAll<HTMLButtonElement>(".permission button");
     expect([...buttons].map((b) => `${b.dataset.requestId}:${b.dataset.allow}`)).toEqual([
       "p1:true",

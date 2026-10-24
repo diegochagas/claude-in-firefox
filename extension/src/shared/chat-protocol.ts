@@ -52,7 +52,7 @@ export type ChatEvent =
   | { type: "text"; delta: string }
   | { type: "assistant_text"; text: string }
   | { type: "tool_use"; toolUseId: string; name: string; input: unknown }
-  | { type: "tool_result"; toolUseId: string; text: string; isError: boolean }
+  | { type: "tool_result"; toolUseId: string; text: string; isError: boolean; images?: ChatImage[] }
   | {
       type: "permission";
       requestId: string;
@@ -71,6 +71,12 @@ export type ChatEvent =
   | { type: "error"; message: string }
   | { type: "exit"; code: number | null };
 
+/** A screenshot (or other image) a tool returned; shown inline in the sidebar, never persisted. */
+export interface ChatImage {
+  mediaType: string;
+  base64: string;
+}
+
 /** One rendered row of the transcript. */
 export type ChatItem =
   | { role: "user"; text: string }
@@ -82,6 +88,7 @@ export type ChatItem =
       input: unknown;
       resultText?: string;
       isError?: boolean;
+      images?: ChatImage[];
     }
   | {
       role: "permission";

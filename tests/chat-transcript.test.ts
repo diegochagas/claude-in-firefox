@@ -4,6 +4,7 @@ import {
   createConversation,
   settleConversation,
   summarizeConversation,
+  withoutImages,
 } from "../extension/src/shared/chat-transcript";
 import { composeChatPrompt } from "../extension/src/background/chat-prompt";
 
@@ -103,6 +104,28 @@ describe("applyChatEvent", () => {
       updatedAt: conversation.updatedAt,
       busy: true,
     });
+  });
+  it("keeps tool images in memory but strips them for storage", () => {
+    const conversation = createConversation("c1");
+    applyChatEvent(conversation, {
+      type: "tool_use",
+      toolUseId: "t1",
+      name: "computer",
+      input: {},
+    });
+    applyChatEvent(conversation, {
+      type: "tool_result",
+      toolUseId: "t1",
+      text: "shot",
+      isError: false,
+      images: [{ mediaType: "image/png", base64: "abc" }],
+    });
+    expect(conversation.items[0]).toMatchObject({ images: [{ base64: "abc" }] });
+    expect(withoutImages(conversation).items[0]).toMatchObject({
+      resultText: "shot",
+      images: undefined,
+    });
+    expect(conversation.items[0]).toMatchObject({ images: [{ base64: "abc" }] });
   });
   it("records a model change", () => {
     const conversation = createConversation("c1");

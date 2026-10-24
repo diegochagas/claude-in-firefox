@@ -2,9 +2,14 @@
 // into ChatEvents. Shapes observed with Claude Code 2.1 (2026-10-24): system/init,
 // stream_event (Anthropic API deltas), assistant/user messages with content blocks,
 // control_request (permission prompts when --permission-prompt-tool stdio), result.
-import type { ChatEvent } from "../../extension/src/shared/chat-protocol";
+import type { ChatEvent, ChatImage } from "../../extension/src/shared/chat-protocol";
 
 export const TOOL_RESULT_MAX_CHARS = 600;
+/**
+ * Native messaging refuses frames above 1 MiB on the way to the extension; one event carries
+ * at most this much base64 (a half-scale screenshot is ~350 KB, a full one can be over 1 MB).
+ */
+export const IMAGE_MAX_BASE64_CHARS = 700_000;
 
 interface ContentBlock {
   type: string;
@@ -15,6 +20,7 @@ interface ContentBlock {
   tool_use_id?: string;
   content?: string | ContentBlock[];
   is_error?: boolean;
+  source?: { type?: string; media_type?: string; data?: string };
 }
 
 interface ClaudeStreamLine {
@@ -64,15 +70,51 @@ function fromAssistant(line: ClaudeStreamLine): ChatEvent[] {
   });
 }
 
+/**
+ * Images of a tool result that fit the frame budget, and a note for every one that does not.
+ * Example: toolResultImages([{ type: "image", source: { media_type: "image/png", data: "iVBOR…" } }])
+ */
+export function toolResultImages(content: string | ContentBlock[] | undefined): {
+  images: ChatImage[];
+  omitted: string[];
+} {
+  const images: ChatImage[] = [];
+  const omitted: string[] = [];
+  let budget = IMAGE_MAX_BASE64_CHARS;
+  for (const block of blocksOf(content)) {
+    const base64 = block.type === "image" ? block.source?.data : undefined;
+    if (!base64) continue;
+    if (base64.length > budget) {
+      omitted.push(omittedImageNote(base64.length));
+      continue;
+    }
+    budget -= base64.length;
+    images.push({ mediaType: block.source?.media_type ?? "image/png", base64 });
+  }
+  return { images, omitted };
+}
+
+function omittedImageNote(base64Length: number): string {
+  return `[image of ${Math.round(base64Length / 1024)} KB not shown: over the sidebar's size limit]`;
+}
+
+function fromToolResult(block: ContentBlock): ChatEvent {
+  const { images, omitted } = toolResultImages(block.content);
+  const text = [toolResultText(block.content), ...omitted].filter(Boolean).join("\n");
+  const event: ChatEvent = {
+    type: "tool_result",
+    toolUseId: block.tool_use_id ?? "",
+    text,
+    isError: block.is_error === true,
+  };
+  if (images.length > 0) event.images = images;
+  return event;
+}
+
 function fromUser(line: ClaudeStreamLine): ChatEvent[] {
   return blocksOf(line.message?.content)
     .filter((block) => block.type === "tool_result")
-    .map((block) => ({
-      type: "tool_result",
-      toolUseId: block.tool_use_id ?? "",
-      text: toolResultText(block.content),
-      isError: block.is_error === true,
-    }));
+    .map(fromToolResult);
 }
 
 function fromControlRequest(line: ClaudeStreamLine): ChatEvent[] {

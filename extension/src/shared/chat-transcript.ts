@@ -58,16 +58,15 @@ function setAssistantText(conversation: ChatConversation, text: string): void {
 
 function recordToolResult(
   conversation: ChatConversation,
-  toolUseId: string,
-  text: string,
-  isError: boolean,
+  event: Extract<ChatEvent, { type: "tool_result" }>,
 ): void {
   const tool = conversation.items.find(
-    (item) => item.role === "tool" && item.toolUseId === toolUseId,
+    (item) => item.role === "tool" && item.toolUseId === event.toolUseId,
   );
   if (!tool || tool.role !== "tool") return;
-  tool.resultText = text;
-  tool.isError = isError;
+  tool.resultText = event.text;
+  tool.isError = event.isError;
+  if (event.images?.length) tool.images = event.images;
 }
 
 function answerPermission(conversation: ChatConversation, requestId: string, allow: boolean): void {
@@ -131,8 +130,7 @@ function applyRemainingEvent(conversation: ChatConversation, event: ChatEvent): 
   if (event.type === "session") conversation.sessionId = event.sessionId;
   else if (event.type === "model") conversation.model = event.model;
   else if (event.type === "tool_use") addToolUse(conversation, event);
-  else if (event.type === "tool_result")
-    recordToolResult(conversation, event.toolUseId, event.text, event.isError);
+  else if (event.type === "tool_result") recordToolResult(conversation, event);
   else if (event.type === "permission") addPermission(conversation, event);
   else if (event.type === "permission_answered")
     answerPermission(conversation, event.requestId, event.allow);
@@ -144,6 +142,16 @@ function applyRemainingEvent(conversation: ChatConversation, event: ChatEvent): 
 export function summarizeConversation(conversation: ChatConversation): ChatConversationSummary {
   const { conversationId, title, updatedAt, busy } = conversation;
   return { conversationId, title, updatedAt, busy };
+}
+
+/** Copy without tool images (hundreds of KB each): what goes to storage.local. */
+export function withoutImages(conversation: ChatConversation): ChatConversation {
+  return {
+    ...conversation,
+    items: conversation.items.map((item) =>
+      item.role === "tool" && item.images ? { ...item, images: undefined } : item,
+    ),
+  };
 }
 
 /** Mark a conversation idle after a restart: its process is gone, nothing is streaming. */
