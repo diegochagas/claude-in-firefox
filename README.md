@@ -66,6 +66,29 @@ native messaging frames are capped at 1 MiB).
   or test can post a turn into the sidebar and read what happened (the e2e suite does this with
   a fake `claude`).
 
+## From the Claude desktop app
+
+Claude Code sessions (CLI and the desktop app's **Code** tab) see the tools as soon as
+`scripts/setup` has registered the server. The desktop app's **Chat** tab (claude.ai) does not
+read Claude Code's MCP servers; it has its own list in `claude_desktop_config.json`
+(`~/.config/Claude/` on Linux). Add the server there with absolute paths, since the app launches
+MCP servers with a minimal environment and no `PATH`:
+
+```json
+{
+  "mcpServers": {
+    "claude-in-firefox": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/claude-in-firefox/dist/mcp-server.js"]
+    }
+  }
+}
+```
+
+Restart the app; a Chat conversation then lists `claude-in-firefox` among its tools and can
+drive Firefox the way Claude in Chrome drives Chrome. A Chat conversation has no "current tab",
+so name the tab you mean or let it open one with `tabs_create`.
+
 ## Architecture
 
 ```
