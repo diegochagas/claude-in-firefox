@@ -24,7 +24,8 @@ load_credentials() {
 
 check_preconditions() {
     [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version \"$VERSION\" must be MAJOR.MINOR.PATCH"
-    [[ -z "$(git status --porcelain)" ]] || fail "working tree not clean; commit or stash first"
+    # Untracked files (local notes, copies of config.env) do not affect the release commit.
+    [[ -z "$(git status --porcelain --untracked-files=no)" ]] || fail "working tree has uncommitted tracked changes; commit or stash first"
     git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && fail "tag v$VERSION already exists"
     command -v gh >/dev/null || fail "gh CLI not found"
 }
