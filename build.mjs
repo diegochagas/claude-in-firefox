@@ -13,6 +13,7 @@ const extensionBundle = {
     background: "extension/src/background/main.ts",
     content: "extension/src/content/main.ts",
     popup: "extension/src/popup/main.ts",
+    sidebar: "extension/src/sidebar/main.ts",
   },
   bundle: true,
   format: "iife",
@@ -40,6 +41,7 @@ async function copyStaticExtensionFiles() {
   await mkdir("dist/extension/icons", { recursive: true });
   await cp("extension/manifest.json", "dist/extension/manifest.json");
   await cp("extension/popup.html", "dist/extension/popup.html");
+  await cp("extension/sidebar.html", "dist/extension/sidebar.html");
   await cp("extension/icons", "dist/extension/icons", { recursive: true });
 }
 

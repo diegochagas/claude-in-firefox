@@ -2,7 +2,7 @@
 import type { BridgeStatus, DrivenTabStatus } from "../shared/popup-protocol";
 
 export const USAGE_HINT =
-  "Nothing to click here: Claude drives this browser from a Claude Code session. Open one and ask Claude to use Firefox; the tools are named claude-in-firefox.";
+  "Open chat for a sidebar conversation with Claude about the current page (uses your Claude Code login). Claude Code sessions can also drive this browser directly; the tools are named claude-in-firefox.";
 const NOT_CONNECTED_HINT =
   "Not connected: the native host is not running. Run scripts/setup once in the claude-in-firefox checkout, then press Reconnect.";
 

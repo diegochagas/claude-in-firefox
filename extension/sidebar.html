@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Claude</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font:
+          13px/1.45 system-ui,
+          sans-serif;
+        --border: color-mix(in srgb, currentColor 18%, transparent);
+        --bubble-user: color-mix(in srgb, #4a7bd0 22%, Canvas);
+        --bubble-assistant: color-mix(in srgb, currentColor 6%, Canvas);
+        --error: #c62828;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        background: Canvas;
+        color: CanvasText;
+      }
+      header {
+        display: flex;
+        gap: 6px;
+        padding: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      header select,
+      header button,
+      footer button,
+      textarea {
+        font: inherit;
+        color: inherit;
+        background: Canvas;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 8px;
+      }
+      #conversations {
+        flex: 1;
+        min-width: 0;
+      }
+      main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .msg {
+        padding: 7px 10px;
+        border-radius: 10px;
+        max-width: 92%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .msg.user {
+        align-self: flex-end;
+        background: var(--bubble-user);
+        white-space: pre-wrap;
+      }
+      .msg.assistant {
+        align-self: flex-start;
+        background: var(--bubble-assistant);
+      }
+      .msg.assistant.streaming::after {
+        content: "▍";
+        opacity: 0.6;
+      }
+      .msg p,
+      .msg ul,
+      .msg ol,
+      .msg h1,
+      .msg h2,
+      .msg h3 {
+        margin: 0 0 6px;
+      }
+      .msg :last-child {
+        margin-bottom: 0;
+      }
+      .msg h1,
+      .msg h2,
+      .msg h3 {
+        font-size: 14px;
+      }
+      pre {
+        margin: 0;
+        padding: 6px 8px;
+        border-radius: 6px;
+        background: color-mix(in srgb, currentColor 8%, Canvas);
+        font-size: 12px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      code {
+        font-size: 12px;
+      }
+      details.tool {
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      details.tool summary {
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      details.tool.error summary {
+        color: var(--error);
+      }
+      .permission {
+        border: 1px solid #e0a800;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .permission .actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .permission button {
+        font: inherit;
+        padding: 3px 10px;
+      }
+      .status-line {
+        font-size: 12px;
+        opacity: 0.75;
+        text-align: center;
+      }
+      .status-line.error {
+        color: var(--error);
+        opacity: 1;
+        text-align: left;
+        white-space: pre-wrap;
+      }
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #status {
+        font-size: 12px;
+        opacity: 0.7;
+        min-height: 1.2em;
+      }
+      #status.error {
+        color: var(--error);
+        opacity: 1;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 48px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+      .empty {
+        margin: auto;
+        text-align: center;
+        opacity: 0.6;
+        padding: 0 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <select id="conversations" title="Previous chats"></select>
+      <button id="new-chat" type="button" title="Start a new chat">New chat</button>
+      <select id="model" title="Model for the next message">
+        <option value="">Default model</option>
+        <option value="sonnet">Sonnet</option>
+        <option value="opus">Opus</option>
+        <option value="haiku">Haiku</option>
+      </select>
+    </header>
+    <main id="messages"></main>
+    <footer>
+      <div id="status"></div>
+      <textarea
+        id="composer"
+        rows="3"
+        placeholder="Ask about this page… (Enter sends, Shift+Enter breaks the line)"
+      ></textarea>
+      <div class="actions">
+        <button id="stop" type="button" hidden>Stop</button>
+        <button id="send" type="button">Send</button>
+      </div>
+    </footer>
+    <script src="sidebar.js"></script>
+  </body>
+</html>

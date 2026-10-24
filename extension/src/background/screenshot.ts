@@ -41,10 +41,27 @@ async function pngSize(dataUrl: string): Promise<{ width: number; height: number
   return { width: view.getUint32(0), height: view.getUint32(4) };
 }
 
+/**
+ * Pages without a content script (the extension's own sidebar.html in a tab) still capture;
+ * their viewport is the tab's size, unscrolled.
+ */
+async function viewportFromTab(tabId: number): Promise<ViewportInfo> {
+  const tab = await browser.tabs.get(tabId);
+  return {
+    width: tab.width ?? 0,
+    height: tab.height ?? 0,
+    scrollX: 0,
+    scrollY: 0,
+    devicePixelRatio: 1,
+  };
+}
+
 export async function captureViewport(tabId: unknown, scale: unknown): Promise<ScreenshotResult> {
   const id = await resolveTabId(tabId);
   const factor = typeof scale === "number" && scale > 0 && scale <= 1 ? scale : 1;
-  const viewport = await sendToContent<ViewportInfo>(id, { kind: "viewport" });
+  const viewport = await sendToContent<ViewportInfo>(id, { kind: "viewport" }).catch(() =>
+    viewportFromTab(id),
+  );
   const dataUrl = await browser.tabs.captureTab(id, { format: "png", scale: factor });
   return screenshotResult(dataUrl, viewport, factor);
 }
