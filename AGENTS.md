@@ -15,14 +15,14 @@ code or assets). Three programs, one TypeScript repo, bundled by esbuild into `d
   `markdown.ts` safe Markdown → DOM, `main.ts` the Port to the background; uses the user's Claude Code login
 - `extension/src/shared/` — wire types (`protocol.ts` bridge, `chat-protocol.ts` sidebar chat, `chat-transcript.ts`
   the reducer both background and sidebar apply) and key-name table used by all three programs
-- `native-host/src/` — stdio framing ⇄ Unix socket (JSON lines), multiplexes several MCP servers; runs one
+- `native-host/src/` — stdio framing ⇄ Unix socket or Windows named pipe (JSON lines, `socket-path.ts`), multiplexes several MCP servers; runs one
   `claude -p` per sidebar conversation (`claude-launch.ts` args/binary, `claude-process.ts` stdio runner,
   `claude-stream.ts` stream-json → `ChatEvent`, `chat-sessions.ts` live processes)
 - `mcp-server/src/` — MCP tools (`tools/*.ts`), `BridgeClient`, `ToolRegistry` (the only file that touches the MCP SDK)
 - `tests/` (vitest unit, jsdom for content modules, `FakeBridge` for tools, `fakes/fake-claude.mjs` +
   `FakeClaudeProcess` for the host's chat runner), `e2e/` (real headless Firefox via web-ext; the chat e2e
   points the host at the fake `claude` through `CLAUDE_IN_FIREFOX_CLAUDE_BIN`)
-- `scripts/check` gate, `scripts/setup` bootstrap, `scripts/e2e` end-to-end run,
+- `scripts/check` gate, `scripts/setup` bootstrap (`scripts/setup.ps1` on Windows), `scripts/e2e` end-to-end run,
   `scripts/release <version>` (sign with AMO + GitHub Release with xpi and updates.json; `--dry-run` publishes nothing)
 
 ## Testing and shipping (dev-playbook)
@@ -45,7 +45,8 @@ This repo follows the dev-playbook (`~/.claude/skills/dev-playbook/PLAYBOOK.md`)
 
 ## Clean code (dev-playbook CLEAN-CODE.md)
 
-Language: TypeScript (strict, ESM) for all three programs; bash only in `scripts/`.
+Language: TypeScript (strict, ESM) for all three programs; bash only in `scripts/`, except the Windows
+bootstrap `scripts/setup.ps1` (PowerShell).
 Formatter: prettier; `scripts/check` runs it, don't discuss style.
 
 - Functions 4–20 lines (eslint `max-lines-per-function`, strict 20: no React here). Files ≤300 lines

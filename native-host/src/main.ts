@@ -78,8 +78,20 @@ function listen(socketPath: string): Server {
     // no stale socket to remove
   }
   const server = createServer(acceptClient);
+  server.on("error", (error) => reportListenFailure(socketPath, error));
   server.listen(socketPath, () => log("listening", { socketPath, pid: process.pid }));
   return server;
+}
+
+// A Windows named pipe can't be unlinked like a stale Unix socket, so a second browser's host
+// finds the pipe still owned by the first one. Say so instead of crashing without a reason.
+function reportListenFailure(socketPath: string, error: NodeJS.ErrnoException): never {
+  const hint =
+    error.code === "EADDRINUSE"
+      ? "another browser's native host already owns it; quit that browser, then press Reconnect"
+      : undefined;
+  log("listen-failed", { socketPath, error: error.message, code: error.code, hint });
+  process.exit(1);
 }
 
 function startClaudeProcess(

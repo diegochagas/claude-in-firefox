@@ -115,7 +115,9 @@ dist/mcp-server.js  ── JSON lines over a Unix socket ──▶  dist/native-
 The native host multiplexes any number of MCP servers onto the single extension connection,
 so several Claude Code sessions can share one Firefox. For the sidebar it also spawns one
 `claude` process per conversation; that process starts its own `mcp-server.js`, which connects
-back to the same socket. Bridge wire types live in `extension/src/shared/protocol.ts`, chat
+back to the same socket. On Windows the socket is a per-user named pipe
+(`\\.\pipe\claude-in-firefox-<user>`) and Firefox starts the host through `dist\native-host.bat`.
+Bridge wire types live in `extension/src/shared/protocol.ts`, chat
 types in `extension/src/shared/chat-protocol.ts`.
 
 ## Install
@@ -148,6 +150,22 @@ The toolbar badge reads **on** when the native host is connected; clicking the i
 status popup (connection state, tabs Claude has driven, Reconnect, **Open chat**). A new
 Claude Code session then lists the `claude-in-firefox` tools; pick a tab with `tabs_context`
 and go, or open the sidebar chat and type.
+
+### Windows (Firefox, Zen and other Firefox-based browsers)
+
+Requires Node.js 22+ and Claude Code on PATH. From PowerShell in the repo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+```
+
+This builds the project, registers the native host under
+`HKCU\Software\Mozilla\NativeMessagingHosts\claude_in_firefox` (pointing at
+`dist\native-host.bat`) and adds the MCP server to Claude Code. Then install the signed `.xpi`
+from Releases. The host and MCP server talk over a per-user named pipe,
+`\\.\pipe\claude-in-firefox-<user>`, instead of a Unix socket. One browser at a time: if
+Firefox and Zen both run the extension, the first one to start keeps the pipe; quit it and
+press Reconnect in the other. Undo with `scripts\setup.ps1 -Uninstall`.
 
 ## Development
 

@@ -53,12 +53,24 @@ describe("bridgeSocketPath", () => {
   it("prefers the explicit override, then /run/user/<uid>, then /tmp, ignoring XDG_RUNTIME_DIR", () => {
     const present = () => true;
     const absent = () => false;
+    const linux = { platform: "linux" as const, userName: () => "u" };
     expect(bridgeSocketPath({ CLAUDE_IN_FIREFOX_SOCKET: "/x/y.sock" }, 7, present)).toBe(
       "/x/y.sock",
     );
-    expect(bridgeSocketPath({ XDG_RUNTIME_DIR: "/elsewhere" }, 7, present)).toBe(
+    expect(bridgeSocketPath({ XDG_RUNTIME_DIR: "/elsewhere" }, 7, present, linux)).toBe(
       "/run/user/7/claude-in-firefox.sock",
     );
-    expect(bridgeSocketPath({}, 7, absent)).toBe("/tmp/claude-in-firefox-7.sock");
+    expect(bridgeSocketPath({}, 7, absent, linux)).toBe("/tmp/claude-in-firefox-7.sock");
+  });
+
+  it("uses a per-user named pipe on Windows", () => {
+    const windows = { platform: "win32" as const, userName: () => "Ann Lee" };
+    expect(bridgeSocketPath({}, -1, () => false, windows)).toBe(
+      String.raw`\\.\pipe\claude-in-firefox-Ann_Lee`,
+    );
+    const pipe = String.raw`\\.\pipe\x`;
+    expect(bridgeSocketPath({ CLAUDE_IN_FIREFOX_SOCKET: pipe }, -1, () => false, windows)).toBe(
+      pipe,
+    );
   });
 });

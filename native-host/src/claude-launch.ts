@@ -3,7 +3,22 @@
 // claude-in-firefox MCP server, its tools pre-approved).
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join } from "node:path";
+import { posix, win32 } from "node:path";
+
+/** The native installer ships claude.exe on Windows. */
+function claudeExecutableName(platform: NodeJS.Platform): string {
+  return platform === "win32" ? "claude.exe" : "claude";
+}
+
+/** Windows keeps the search path as "Path"; Node exposes whichever spelling it was given. */
+function pathVariable(env: NodeJS.ProcessEnv): string {
+  return env.PATH ?? env.Path ?? "";
+}
+
+/** Path helpers of the given platform, so lookups are testable from any OS. */
+function pathsFor(platform: NodeJS.Platform): typeof posix {
+  return platform === "win32" ? win32 : posix;
+}
 
 export const CHAT_SYSTEM_PROMPT =
   "You are answering from the sidebar of the user's Firefox. The claude-in-firefox tools drive that same browser; every user message starts with the tab they are looking at, so use its tabId directly instead of asking which tab. Read the page with get_page_text or read_page before answering questions about it. The sidebar is narrow: keep answers short and avoid wide tables.";
@@ -60,16 +75,19 @@ export function resolveClaudeBinary(
   env: NodeJS.ProcessEnv = process.env,
   exists: (path: string) => boolean = existsSync,
   home: string = homedir(),
+  platform: NodeJS.Platform = process.platform,
 ): string {
   if (env.CLAUDE_IN_FIREFOX_CLAUDE_BIN) return env.CLAUDE_IN_FIREFOX_CLAUDE_BIN;
-  const onPath = (env.PATH ?? "")
+  const { delimiter, join } = pathsFor(platform);
+  const name = claudeExecutableName(platform);
+  const onPath = pathVariable(env)
     .split(delimiter)
     .filter(Boolean)
-    .map((dir) => join(dir, "claude"))
+    .map((dir) => join(dir, name))
     .find(exists);
   if (onPath) return onPath;
-  const fallbacks = [join(home, ".local/bin/claude"), join(home, ".claude/local/claude")];
-  return fallbacks.find(exists) ?? "claude";
+  const fallbacks = [join(home, ".local", "bin", name), join(home, ".claude", "local", name)];
+  return fallbacks.find(exists) ?? name;
 }
 
 /**
@@ -80,7 +98,13 @@ export function resolveClaudeBinary(
 export function chatWorkingDirectory(
   env: NodeJS.ProcessEnv = process.env,
   home: string = homedir(),
+  platform: NodeJS.Platform = process.platform,
 ): string {
+  const { join } = pathsFor(platform);
+  if (platform === "win32") {
+    const localAppData = env.LOCALAPPDATA || join(home, "AppData", "Local");
+    return join(localAppData, "claude-in-firefox", "chat");
+  }
   const stateHome = env.XDG_STATE_HOME || join(home, ".local/state");
   return join(stateHome, "claude-in-firefox", "chat");
 }

@@ -50,6 +50,9 @@ async function writeNativeHostLauncher() {
   // shell wrapper lets us keep the real program in JavaScript.
   const launcher = `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/native-host.js"\n`;
   await writeFile("dist/native-host", launcher);
+  // Windows starts native hosts through a batch file; the sh wrapper above is ignored there.
+  const batchLauncher = `@echo off\r\n"${process.execPath}" "%~dp0native-host.js" %*\r\n`;
+  await writeFile("dist/native-host.bat", batchLauncher);
   await chmod("dist/native-host", 0o755);
   await chmod("dist/native-host.js", 0o755);
   await chmod("dist/mcp-server.js", 0o755);
